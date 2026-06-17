@@ -1,65 +1,223 @@
-import Image from "next/image";
+'use client';
 
-export default function Home() {
+import { useState } from 'react';
+import Link from 'next/link';
+
+export default function HomePage() {
+  const [hoveredCard, setHoveredCard] = useState<number | null>(null);
+
+  const features = [
+    {
+      icon: '🛡️',
+      title: 'Field Visit Mode',
+      desc: 'GPS-powered nearby complaint view for on-ground inspections with real-time data overlay',
+      gradient: 'from-blue-600 to-cyan-500',
+    },
+    {
+      icon: '✅',
+      title: 'Citizen Veto',
+      desc: 'No complaint closes until the citizen confirms — preventing false closure and desk-based fraud',
+      gradient: 'from-emerald-600 to-green-500',
+    },
+    {
+      icon: '🔗',
+      title: 'Duplicate Clustering',
+      desc: 'Geo-radius intelligent merging of complaints into master tickets with subscriber notifications',
+      gradient: 'from-amber-600 to-orange-500',
+    },
+    {
+      icon: '🚨',
+      title: 'Critical Alert Engine',
+      desc: 'Life-threatening complaints bypass queues with immediate escalation and 4-hour SLA',
+      gradient: 'from-red-600 to-pink-500',
+    },
+    {
+      icon: '📊',
+      title: 'Officer Resource Ledger',
+      desc: 'Real-time workload monitoring, bandwidth tracking, and intelligent re-routing of assignments',
+      gradient: 'from-purple-600 to-violet-500',
+    },
+    {
+      icon: '🔒',
+      title: 'Anti-Fraud by Design',
+      desc: 'EXIF geotagging validation, before/after proof, complete audit trail for every action',
+      gradient: 'from-indigo-600 to-blue-500',
+    },
+  ];
+
+  const stats = [
+    { value: '50+', label: 'API Endpoints', icon: '⚡' },
+    { value: '11', label: 'Data Models', icon: '🗄️' },
+    { value: '5', label: 'User Roles', icon: '👥' },
+    { value: '99.9%', label: 'Uptime Target', icon: '🎯' },
+  ];
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
+    <div style={{ minHeight: '100vh', background: 'var(--bg-primary)' }}>
+      {/* Navigation */}
+      <nav style={{
+        position: 'fixed', top: 0, left: 0, right: 0, zIndex: 50,
+        background: 'rgba(10, 14, 26, 0.8)', backdropFilter: 'blur(20px)',
+        borderBottom: '1px solid var(--glass-border)',
+      }}>
+        <div style={{ maxWidth: '1280px', margin: '0 auto', padding: '0 2rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: '72px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <div style={{
+              width: '40px', height: '40px', borderRadius: '10px',
+              background: 'var(--gradient-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: '20px', fontWeight: 800, color: 'white',
+            }}>
+              D
+            </div>
+            <div>
+              <div style={{ fontWeight: 700, fontSize: '1rem', color: 'var(--text-primary)' }}>Delhi CM Grievance</div>
+              <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', letterSpacing: '0.05em' }}>GOVERNANCE INTELLIGENCE</div>
+            </div>
+          </div>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <Link href="/track" className="btn btn-ghost" style={{ fontSize: '0.85rem' }}>Track Complaint</Link>
+            <Link href="/login" className="btn btn-primary" style={{ fontSize: '0.85rem' }}>Login →</Link>
+          </div>
+        </div>
+      </nav>
+
+      {/* Hero Section */}
+      <section style={{
+        paddingTop: '160px', paddingBottom: '80px', textAlign: 'center', position: 'relative', overflow: 'hidden',
+      }}>
+        {/* Background glow */}
+        <div style={{
+          position: 'absolute', top: '-200px', left: '50%', transform: 'translateX(-50%)',
+          width: '800px', height: '800px', borderRadius: '50%',
+          background: 'radial-gradient(circle, rgba(30, 64, 175, 0.15) 0%, transparent 60%)',
+          pointerEvents: 'none',
+        }} />
+
+        <div style={{ maxWidth: '900px', margin: '0 auto', padding: '0 2rem', position: 'relative' }} className="animate-fade-in">
+          <div style={{
+            display: 'inline-flex', alignItems: 'center', gap: '8px',
+            padding: '6px 16px', borderRadius: '999px', marginBottom: '24px',
+            background: 'rgba(59, 130, 246, 0.1)', border: '1px solid rgba(59, 130, 246, 0.2)',
+            fontSize: '0.8rem', color: '#93c5fd', fontWeight: 500,
+          }}>
+            🏛️ Chief Minister&apos;s Office, Delhi
+          </div>
+
+          <h1 style={{
+            fontSize: 'clamp(2.5rem, 5vw, 4rem)', fontWeight: 900, lineHeight: 1.1, marginBottom: '24px',
+            background: 'linear-gradient(135deg, #f1f5f9 0%, #94a3b8 100%)',
+            WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
+          }}>
+            Governance Intelligence<br />
+            <span style={{
+              background: 'linear-gradient(135deg, #3b82f6 0%, #06b6d4 100%)',
+              WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
+            }}>
+              Command Center
+            </span>
           </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+
+          <p style={{
+            fontSize: '1.15rem', color: 'var(--text-secondary)', maxWidth: '640px', margin: '0 auto 40px',
+            lineHeight: 1.7,
+          }}>
+            AI-powered grievance management platform with real-time field monitoring,
+            citizen verification, and complete accountability chain for every complaint.
+          </p>
+
+          <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap' }}>
+            <Link href="/login" className="btn btn-primary" style={{ padding: '14px 32px', fontSize: '1rem' }}>
+              Access Dashboard →
+            </Link>
+            <Link href="/submit" className="btn btn-ghost" style={{ padding: '14px 32px', fontSize: '1rem' }}>
+              File a Complaint
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* Stats Bar */}
+      <section style={{ maxWidth: '1000px', margin: '0 auto 80px', padding: '0 2rem' }}>
+        <div className="glass-card" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1px', overflow: 'hidden' }}>
+          {stats.map((stat, i) => (
+            <div key={i} style={{
+              padding: '28px', textAlign: 'center',
+              borderRight: i < 3 ? '1px solid var(--glass-border)' : 'none',
+            }}>
+              <div style={{ fontSize: '1.5rem', marginBottom: '4px' }}>{stat.icon}</div>
+              <div style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--text-primary)' }}>{stat.value}</div>
+              <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', fontWeight: 500 }}>{stat.label}</div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Features Grid */}
+      <section style={{ maxWidth: '1200px', margin: '0 auto 100px', padding: '0 2rem' }}>
+        <div style={{ textAlign: 'center', marginBottom: '48px' }}>
+          <h2 style={{ fontSize: '2rem', fontWeight: 800, marginBottom: '12px' }}>Primary Differentiators</h2>
+          <p style={{ color: 'var(--text-secondary)', maxWidth: '500px', margin: '0 auto' }}>
+            Features that make this system stand out from standard complaint portals.
           </p>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+
+        <div className="stagger-children" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: '20px' }}>
+          {features.map((feature, i) => (
+            <div
+              key={i}
+              className="stat-card"
+              onMouseEnter={() => setHoveredCard(i)}
+              onMouseLeave={() => setHoveredCard(null)}
+              style={{
+                cursor: 'default',
+                transform: hoveredCard === i ? 'translateY(-4px)' : 'none',
+              }}
+            >
+              <div style={{ fontSize: '2rem', marginBottom: '12px' }}>{feature.icon}</div>
+              <h3 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: '8px' }}>{feature.title}</h3>
+              <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', lineHeight: 1.6 }}>{feature.desc}</p>
+            </div>
+          ))}
         </div>
-      </main>
+      </section>
+
+      {/* Roles Section */}
+      <section style={{ maxWidth: '1200px', margin: '0 auto 100px', padding: '0 2rem' }}>
+        <div style={{ textAlign: 'center', marginBottom: '48px' }}>
+          <h2 style={{ fontSize: '2rem', fontWeight: 800, marginBottom: '12px' }}>Multi-Role Access</h2>
+          <p style={{ color: 'var(--text-secondary)' }}>Tailored experiences for every stakeholder in the grievance lifecycle.</p>
+        </div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
+          {[
+            { role: 'Citizen', desc: 'Submit & track complaints, confirm resolution', color: '#3b82f6' },
+            { role: 'Officer', desc: 'Kanban board, evidence upload, status management', color: '#10b981' },
+            { role: 'Dept Head', desc: 'Team oversight, reassignment, SLA monitoring', color: '#f59e0b' },
+            { role: 'Admin', desc: 'System configuration, user management, audit logs', color: '#8b5cf6' },
+            { role: 'CM', desc: 'Analytics dashboard, field visit mode, spot directives', color: '#ef4444' },
+          ].map((item, i) => (
+            <div key={i} className="glass-card" style={{ padding: '24px', textAlign: 'center' }}>
+              <div style={{
+                width: '48px', height: '48px', borderRadius: '12px', margin: '0 auto 12px',
+                background: `${item.color}22`, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: '1.2rem', fontWeight: 700, color: item.color, border: `1px solid ${item.color}33`,
+              }}>
+                {item.role[0]}
+              </div>
+              <h3 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '6px' }}>{item.role}</h3>
+              <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', lineHeight: 1.5 }}>{item.desc}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer style={{
+        borderTop: '1px solid var(--border-color)', padding: '40px 2rem', textAlign: 'center',
+        color: 'var(--text-muted)', fontSize: '0.85rem',
+      }}>
+        <p>Delhi CM Grievance Dashboard — Governance Intelligence Platform</p>
+        <p style={{ marginTop: '4px', fontSize: '0.75rem' }}>Built with Next.js • Express • MongoDB • Leaflet • Recharts</p>
+      </footer>
     </div>
   );
 }
