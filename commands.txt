@@ -1,0 +1,744 @@
+Yes. What you need is **not another architecture document**.
+
+You need a **Master Prompt Pack** that you can paste into Claude Opus 4.6, Antigravity, Cursor Agent, Claude Code, Gemini CLI, or any coding agent and let it build the project phase-by-phase.
+
+The mistake most people make is giving Claude a 200-page document and saying:
+
+> Build this.
+
+Then Claude tries to build everything at once.
+
+Instead you should do:
+
+```text
+Phase 0 -> Architecture
+Phase 1 -> Project Setup
+Phase 2 -> Database
+Phase 3 -> Backend
+Phase 4 -> Frontend
+Phase 5 -> CM Dashboard
+Phase 6 -> Analytics
+Phase 7 -> Testing
+Phase 8 -> Documentation
+```
+
+Each phase should have its own prompt.
+
+---
+
+# WHAT YOU GIVE CLAUDE FIRST
+
+Create repository:
+
+```text
+delhi-cm-grievance-dashboard
+```
+
+Then give Claude:
+
+---
+
+# MASTER SYSTEM PROMPT
+
+```text
+You are the lead architect and senior staff engineer responsible for building a production-grade Chief Minister Grievance & Complaint Management Dashboard for Delhi Government.
+
+Your responsibilities:
+
+1. Think like a government systems architect.
+2. Think like a principal engineer.
+3. Think like a DevOps engineer.
+4. Think like a product manager.
+
+Never skip planning.
+
+Before writing code:
+
+- analyze requirements
+- identify modules
+- identify dependencies
+- identify risks
+- create implementation plan
+
+For every phase:
+
+1. Update documentation
+2. Update architecture diagrams
+3. Update database design
+4. Update API documentation
+5. Create Git commits
+6. Explain decisions
+
+Tech Stack:
+
+Frontend:
+- Next.js 15 App Router
+- TypeScript
+- Tailwind
+- Shadcn UI
+
+Backend:
+- Node.js
+- Express
+- TypeScript
+
+Database:
+- MongoDB
+
+Cache:
+- Redis
+
+Queue:
+- BullMQ
+
+Storage:
+- MinIO (local)
+- S3 compatible
+
+Authentication:
+- JWT
+- Refresh Tokens
+- OTP
+
+Maps:
+- Leaflet
+
+Charts:
+- Recharts
+
+Deployment:
+- Docker
+
+CI/CD:
+- GitHub Actions
+
+Documentation:
+- Markdown
+
+Testing:
+- Jest
+- Supertest
+- Playwright
+
+Always create production-quality code.
+
+Never create placeholder code.
+
+Never hardcode values.
+
+Always create documentation beside implementation.
+
+Always commit after each completed milestone.
+```
+
+---
+
+# PHASE 0
+
+Paste:
+
+```text
+PHASE 0
+
+Before coding anything:
+
+Analyze the entire project.
+
+Create:
+
+1. PRD.md
+2. SYSTEM_ARCHITECTURE.md
+3. DATABASE_DESIGN.md
+4. API_SPECIFICATION.md
+5. SECURITY_ARCHITECTURE.md
+6. MVP_ROADMAP.md
+7. IMPLEMENTATION_PLAN.md
+
+Also create:
+
+- ER Diagram
+- System Diagram
+- Component Diagram
+- Deployment Diagram
+
+Output documentation only.
+
+Do not generate code yet.
+
+When complete tell me:
+"Phase 0 complete"
+```
+
+---
+
+# PHASE 1
+
+Paste:
+
+```text
+PHASE 1
+
+Repository Setup
+
+Create:
+
+Frontend:
+- Next.js
+- TypeScript
+- Tailwind
+- Shadcn
+
+Backend:
+- Express
+- TypeScript
+
+Setup:
+
+- ESLint
+- Prettier
+- Husky
+- Commitlint
+
+Create:
+
+docker-compose.yml
+
+Services:
+
+- frontend
+- backend
+- mongodb
+- redis
+- minio
+
+Create folder structure.
+
+Create environment templates.
+
+Create GitHub Actions.
+
+Create README.
+
+Create first commit.
+
+Document everything.
+
+Output all files.
+```
+
+---
+
+# PHASE 2
+
+Paste:
+
+```text
+PHASE 2
+
+Database Design and Models
+
+Create Mongo schemas for:
+
+Users
+Departments
+Complaints
+ComplaintHistory
+ComplaintClusters
+VisitLogs
+AuditLogs
+Notifications
+Assignments
+OfficerMetrics
+DepartmentMetrics
+
+Requirements:
+
+- indexes
+- geo indexes
+- validation
+- timestamps
+- soft delete support
+
+Create:
+
+database documentation
+
+migration strategy
+
+seed strategy
+
+Create commit.
+```
+
+---
+
+# PHASE 3
+
+Paste:
+
+```text
+PHASE 3
+
+Authentication System
+
+Implement:
+
+Citizen Login
+Officer Login
+Admin Login
+CM Login
+
+Features:
+
+JWT
+Refresh Tokens
+Role Based Access
+
+RBAC Matrix
+
+OTP Login
+
+Audit Logs
+
+Rate Limiting
+
+Brute Force Protection
+
+Create tests.
+
+Update docs.
+
+Create commit.
+```
+
+---
+
+# PHASE 4
+
+Paste:
+
+```text
+PHASE 4
+
+Citizen Complaint Intake Module
+
+Build:
+
+1. Complaint Submission
+
+Fields:
+
+- Title
+- Description
+- Images
+- Video
+- Location
+- Category
+
+Implement:
+
+- Validation
+- File Upload
+- Reference Number Generation
+- Complaint Tracking
+
+Create APIs.
+
+Create tests.
+
+Update docs.
+
+Create commit.
+```
+
+---
+
+# PHASE 5
+
+Paste:
+
+```text
+PHASE 5
+
+Auto Routing Engine
+
+Build:
+
+Routing System
+
+Inputs:
+
+- category
+- location
+- department rules
+
+Implement:
+
+1. Rule Engine
+2. Workload Balancer
+3. Department Assignment
+4. Officer Assignment
+
+Create routing documentation.
+
+Create tests.
+
+Commit.
+```
+
+---
+
+# PHASE 6
+
+Paste:
+
+```text
+PHASE 6
+
+Duplicate Complaint Clustering
+
+Implement:
+
+1. Geo Radius Search
+2. Text Similarity
+3. Master Ticket Creation
+4. Subscriber Linking
+
+Requirements:
+
+- preserve all citizens
+- maintain analytics integrity
+
+Create tests.
+
+Create docs.
+
+Commit.
+```
+
+---
+
+# PHASE 7
+
+Paste:
+
+```text
+PHASE 7
+
+Officer Dashboard
+
+Build:
+
+Kanban Board
+
+Views:
+
+New
+Assigned
+In Progress
+Resolved
+Rejected
+
+Features:
+
+Upload Evidence
+Add Notes
+Request Escalation
+
+Responsive Design
+
+Tests
+
+Commit
+```
+
+---
+
+# PHASE 8
+
+Paste:
+
+```text
+PHASE 8
+
+CM Dashboard
+
+Build:
+
+1. Summary Cards
+2. Heatmaps
+3. Department Performance
+4. Officer Resource Ledger
+5. Critical Alerts
+6. Visit Mode
+
+Mobile First
+
+Create analytics APIs.
+
+Create tests.
+
+Commit.
+```
+
+---
+
+# PHASE 9
+
+Paste:
+
+```text
+PHASE 9
+
+Field Visit Mode
+
+Features:
+
+- Live GPS
+- Nearby Complaints
+- Spot Directives
+- Critical Alerts
+
+Radius:
+
+- 500m
+- 1km
+- 2km
+
+Map Integration
+
+Testing
+
+Commit
+```
+
+---
+
+# PHASE 10
+
+Paste:
+
+```text
+PHASE 10
+
+Citizen Veto System
+
+Implement:
+
+Provisionally Resolved
+
+Citizen Confirmation
+
+Citizen Rejection
+
+Auto Reopen
+
+Escalation
+
+Audit Trail
+
+Testing
+
+Commit
+```
+
+---
+
+# PHASE 11
+
+Paste:
+
+```text
+PHASE 11
+
+Critical Alert Engine
+
+Detect:
+
+- open manhole
+- live wire
+- gas leak
+- structural collapse
+
+Immediate escalation.
+
+High priority queue.
+
+Alert dashboard.
+
+Testing.
+
+Commit.
+```
+
+---
+
+# PHASE 12
+
+Paste:
+
+```text
+PHASE 12
+
+Analytics Engine
+
+Build:
+
+- SLA Reports
+- Resolution Rates
+- Department Performance
+- Officer Performance
+- Hotspots
+- Trends
+
+Create caching strategy.
+
+Create tests.
+
+Commit.
+```
+
+---
+
+# PHASE 13
+
+Paste:
+
+```text
+PHASE 13
+
+Integration Layer
+
+Create:
+
+1. WhatsApp Integration
+2. SMS Integration
+3. Email Integration
+4. MCD311 Mock Integration
+5. Open311 Mock Integration
+
+Must support fallback mode.
+
+Create tests.
+
+Commit.
+```
+
+---
+
+# PHASE 14
+
+Paste:
+
+```text
+PHASE 14
+
+Observability
+
+Implement:
+
+Prometheus
+Grafana
+Sentry
+
+Monitoring:
+
+- API Latency
+- Queue Failures
+- Error Rates
+
+Create dashboards.
+
+Commit.
+```
+
+---
+
+# PHASE 15
+
+Paste:
+
+```text
+PHASE 15
+
+Testing and Hardening
+
+Perform:
+
+Unit Tests
+Integration Tests
+E2E Tests
+
+Coverage Target:
+
+80%+
+
+Fix all issues.
+
+Update docs.
+
+Commit.
+```
+
+---
+
+# PHASE 16
+
+Paste:
+
+```text
+PHASE 16
+
+Deployment
+
+Create:
+
+Dockerfiles
+Docker Compose
+
+Production Setup
+
+AWS Architecture
+
+Backup Strategy
+
+Disaster Recovery
+
+CI/CD
+
+Deployment Documentation
+
+Commit.
+```
+
+---
+
+# FINAL PHASE
+
+Paste:
+
+```text
+FINAL PHASE
+
+Prepare Hackathon Submission
+
+Generate:
+
+1. README
+2. Architecture Deck
+3. Demo Script
+4. Demo Dataset
+5. API Docs
+6. Setup Guide
+7. Judge Walkthrough
+
+Create final project report.
+
+Create final release tag.
+
+Summarize all commits.
+
+Produce deployment checklist.
+```
+
+This is much closer to what a senior engineer would give Claude Opus 4.6. Instead of one giant prompt, you drive the AI through controlled phases, force documentation and commits at every stage, and end up with a far more reliable build.
