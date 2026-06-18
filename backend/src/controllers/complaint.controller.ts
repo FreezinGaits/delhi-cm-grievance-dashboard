@@ -89,7 +89,7 @@ export class ComplaintController {
    */
   static async getById(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
     try {
-      const complaint = await ComplaintService.getComplaintById(req.params.id);
+      const complaint = await ComplaintService.getComplaintById(req.params.id as string);
       res.json({ success: true, data: { complaint } });
     } catch (error) {
       next(error);
@@ -101,7 +101,7 @@ export class ComplaintController {
    */
   static async track(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
     try {
-      const result = await ComplaintService.trackComplaint(req.params.referenceNumber);
+      const result = await ComplaintService.trackComplaint(req.params.referenceNumber as string);
       res.json({ success: true, data: result });
     } catch (error) {
       next(error);
@@ -122,7 +122,7 @@ export class ComplaintController {
         throw ApiError.badRequest(`Invalid status. Must be one of: ${Object.values(ComplaintStatus).join(', ')}`);
       }
 
-      const complaint = await ComplaintService.updateStatus(req.params.id, status, req.user.id, notes);
+      const complaint = await ComplaintService.updateStatus(req.params.id as string, status, req.user.id, notes);
 
       res.json({ success: true, data: { complaint } });
     } catch (error) {
@@ -135,7 +135,7 @@ export class ComplaintController {
    */
   static async getHistory(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
     try {
-      const history = await ComplaintService.getComplaintHistory(req.params.id);
+      const history = await ComplaintService.getComplaintHistory(req.params.id as string);
       res.json({ success: true, data: { history } });
     } catch (error) {
       next(error);

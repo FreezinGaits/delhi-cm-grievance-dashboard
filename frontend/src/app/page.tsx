@@ -129,7 +129,7 @@ export default function HomePage() {
             <Link href="/login" className="btn btn-primary" style={{ padding: '14px 32px', fontSize: '1rem' }}>
               Access Dashboard →
             </Link>
-            <Link href="/submit" className="btn btn-ghost" style={{ padding: '14px 32px', fontSize: '1rem' }}>
+            <Link href="/dashboard/citizen/submit" className="btn btn-ghost" style={{ padding: '14px 32px', fontSize: '1rem' }}>
               File a Complaint
             </Link>
           </div>

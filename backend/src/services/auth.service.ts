@@ -355,12 +355,12 @@ export class AuthService {
     };
 
     const accessToken = jwt.sign(userPayload, env.JWT_ACCESS_SECRET, {
-      expiresIn: env.JWT_ACCESS_EXPIRY,
-    });
+      expiresIn: env.JWT_ACCESS_EXPIRY as string,
+    } as jwt.SignOptions);
 
     const refreshToken = jwt.sign({ id: user._id }, env.JWT_REFRESH_SECRET, {
-      expiresIn: env.JWT_REFRESH_EXPIRY,
-    });
+      expiresIn: env.JWT_REFRESH_EXPIRY as string,
+    } as jwt.SignOptions);
 
     // Store hashed refresh token
     const hashedRefresh = crypto.createHash('sha256').update(refreshToken).digest('hex');

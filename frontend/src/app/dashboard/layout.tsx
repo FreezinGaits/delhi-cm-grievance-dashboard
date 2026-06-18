@@ -19,6 +19,10 @@ const NAV_ITEMS: Record<string, Array<{ label: string; href: string; icon: strin
     { label: 'Officer Ledger', href: '/dashboard/cm/officers', icon: '👮' },
     { label: 'SLA Report', href: '/dashboard/cm/sla', icon: '⏱️' },
     { label: 'Alerts', href: '/dashboard/cm/alerts', icon: '🚨' },
+    { label: 'Directives', href: '/dashboard/cm/directives', icon: '📋' },
+    { label: 'Rankings', href: '/dashboard/cm/rankings', icon: '🏅' },
+    { label: 'Clusters', href: '/dashboard/cm/clusters', icon: '🔗' },
+    { label: 'WhatsApp', href: '/dashboard/cm/whatsapp', icon: '📱' },
   ],
   officer: [
     { label: 'Kanban Board', href: '/dashboard/officer', icon: '📋' },
@@ -104,7 +108,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           {sidebarOpen && (
             <div style={{ overflow: 'hidden' }}>
               <div style={{ fontWeight: 700, fontSize: '0.9rem', whiteSpace: 'nowrap' }}>Delhi CM</div>
-              <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', letterSpacing: '0.05em' }}>GRIEVANCE PORTAL</div>
+              <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', letterSpacing: '0.05em' }}>GOVERNANCE PLATFORM</div>
             </div>
           )}
         </div>

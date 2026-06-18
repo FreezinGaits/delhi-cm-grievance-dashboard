@@ -30,3 +30,18 @@ export type { IOfficerMetrics } from './OfficerMetrics';
 
 export { DepartmentMetrics } from './DepartmentMetrics';
 export type { IDepartmentMetrics } from './DepartmentMetrics';
+
+// ── Phase A: WhatsApp Intake ──
+export { WhatsAppSession, ConversationState } from './WhatsAppSession';
+export type { IWhatsAppSession } from './WhatsAppSession';
+
+export { WhatsAppMessage, MessageDirection, WAMessageType } from './WhatsAppMessage';
+export type { IWhatsAppMessage } from './WhatsAppMessage';
+
+// ── Phase C: Accountability Engine ──
+export { OfficerScore, PerformanceCategory } from './OfficerScore';
+export type { IOfficerScore } from './OfficerScore';
+
+// ── Phase D: CM Spot Directives ──
+export { Directive, DirectiveStatus, DirectivePriority } from './Directive';
+export type { IDirective } from './Directive';

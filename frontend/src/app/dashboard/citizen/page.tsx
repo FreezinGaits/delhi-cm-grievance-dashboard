@@ -1,19 +1,138 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 
-const MOCK_COMPLAINTS = [
-  { id: '1', ref: 'DEL-20260615-00023', title: 'Pipe burst on main road', category: 'Water Supply', status: 'in_progress', priority: 'high', dept: 'DJB', ward: 'Karol Bagh', date: '2026-06-15', slaBreached: false },
-  { id: '2', ref: 'DEL-20260614-00012', title: 'Streetlight not working for 3 days', category: 'Electricity', status: 'provisionally_resolved', priority: 'normal', dept: 'BSES', ward: 'Rohini', date: '2026-06-14', slaBreached: false },
-  { id: '3', ref: 'DEL-20260610-00045', title: 'Garbage pile near school gate', category: 'Sanitation', status: 'resolved', priority: 'normal', dept: 'MCD', ward: 'Dwarka', date: '2026-06-10', slaBreached: false },
-  { id: '4', ref: 'DEL-20260609-00031', title: 'Deep pothole causing accidents', category: 'Roads', status: 'assigned', priority: 'critical', dept: 'PWD', ward: 'Saket', date: '2026-06-09', slaBreached: true },
-  { id: '5', ref: 'DEL-20260605-00019', title: 'Noise complaint from construction site', category: 'Law & Order', status: 'submitted', priority: 'low', dept: 'POLICE', ward: 'Lajpat Nagar', date: '2026-06-05', slaBreached: true },
-];
-
 export default function CitizenDashboard() {
+  const [complaints, setComplaints] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
   const [filter, setFilter] = useState('all');
-  const filtered = filter === 'all' ? MOCK_COMPLAINTS : MOCK_COMPLAINTS.filter((c) => c.status === filter);
+
+  // Confirmation/Rejection state
+  const [showConfirmModal, setShowConfirmModal] = useState<string | null>(null);
+  const [showRejectModal, setShowRejectModal] = useState<string | null>(null);
+  const [rating, setRating] = useState(5);
+  const [comment, setComment] = useState('');
+  const [rejectReason, setRejectReason] = useState('');
+  const [actionLoading, setActionLoading] = useState(false);
+
+  const fetchComplaints = async () => {
+    try {
+      setLoading(true);
+      setError('');
+      const token = localStorage.getItem('accessToken');
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/v1/complaints`, {
+        headers: {
+          'Authorization': `Bearer ${token || ''}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      const resData = await res.json();
+      if (resData.success) {
+        setComplaints(resData.data || []);
+      } else {
+        throw new Error(resData.error?.message || 'Failed to retrieve complaints');
+      }
+    } catch (err: any) {
+      console.error(err);
+      setError(err.message || 'Connection to Grievance API failed.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchComplaints();
+  }, []);
+
+  const handleConfirm = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!showConfirmModal) return;
+    try {
+      setActionLoading(true);
+      setError('');
+      const token = localStorage.getItem('accessToken');
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/v1/complaints/${showConfirmModal}/confirm`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token || ''}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ rating, comment }),
+      });
+
+      const resData = await res.json();
+      if (resData.success) {
+        setShowConfirmModal(null);
+        setComment('');
+        setRating(5);
+        alert('Resolution confirmed. Thank you for your feedback!');
+        await fetchComplaints();
+      } else {
+        throw new Error(resData.error?.message || 'Failed to confirm resolution');
+      }
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleReject = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!showRejectModal || !rejectReason.trim()) return;
+    try {
+      setActionLoading(true);
+      setError('');
+      const token = localStorage.getItem('accessToken');
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/v1/complaints/${showRejectModal}/reject`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token || ''}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ reason: rejectReason }),
+      });
+
+      const resData = await res.json();
+      if (resData.success) {
+        setShowRejectModal(null);
+        setRejectReason('');
+        alert('Resolution rejected. Complaint has been escalated for review.');
+        await fetchComplaints();
+      } else {
+        throw new Error(resData.error?.message || 'Failed to reject resolution');
+      }
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const filtered = filter === 'all' ? complaints : complaints.filter((c) => c.status === filter);
+
+  if (loading && complaints.length === 0) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+        <div style={{ height: '40px', width: '250px' }} className="skeleton" />
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px' }}>
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} style={{ height: '80px' }} className="skeleton" />
+          ))}
+        </div>
+        <div style={{ height: '300px' }} className="skeleton" />
+      </div>
+    );
+  }
+
+  // Calculate stats
+  const total = complaints.length;
+  const resolved = complaints.filter((c) => c.status === 'resolved').length;
+  const active = complaints.filter((c) => ['submitted', 'assigned', 'in_progress', 'escalated'].includes(c.status)).length;
+  const awaiting = complaints.filter((c) => c.status === 'provisionally_resolved').length;
 
   return (
     <div className="animate-fade-in">
@@ -25,17 +144,39 @@ export default function CitizenDashboard() {
         <Link href="/dashboard/citizen/submit" className="btn btn-primary">✏️ New Complaint</Link>
       </div>
 
+      {error && (
+        <div style={{
+          padding: '12px 16px', borderRadius: '10px', marginBottom: '20px',
+          background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.2)',
+          color: '#fca5a5', fontSize: '0.85rem',
+        }}>
+          ⚠️ {error}
+        </div>
+      )}
+
       {/* Quick stats */}
-      <div className="stagger-children" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginBottom: '28px' }}>
-        <div className="stat-card"><div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '4px' }}>Total</div><div style={{ fontSize: '1.5rem', fontWeight: 800 }}>{MOCK_COMPLAINTS.length}</div></div>
-        <div className="stat-card success"><div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '4px' }}>Resolved</div><div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#6ee7b7' }}>{MOCK_COMPLAINTS.filter((c) => c.status === 'resolved').length}</div></div>
-        <div className="stat-card warning"><div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '4px' }}>Active</div><div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#fbbf24' }}>{MOCK_COMPLAINTS.filter((c) => ['submitted', 'assigned', 'in_progress'].includes(c.status)).length}</div></div>
-        <div className="stat-card critical"><div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '4px' }}>Awaiting Confirmation</div><div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#93c5fd' }}>{MOCK_COMPLAINTS.filter((c) => c.status === 'provisionally_resolved').length}</div></div>
+      <div className="stagger-children" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '16px', marginBottom: '28px' }}>
+        <div className="stat-card">
+          <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '4px' }}>Total</div>
+          <div style={{ fontSize: '1.5rem', fontWeight: 800 }}>{total}</div>
+        </div>
+        <div className="stat-card success">
+          <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '4px' }}>Resolved</div>
+          <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#6ee7b7' }}>{resolved}</div>
+        </div>
+        <div className="stat-card warning">
+          <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '4px' }}>Active</div>
+          <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#fbbf24' }}>{active}</div>
+        </div>
+        <div className="stat-card critical">
+          <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '4px' }}>Awaiting Confirmation</div>
+          <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#93c5fd' }}>{awaiting}</div>
+        </div>
       </div>
 
       {/* Filter tabs */}
       <div style={{ display: 'flex', gap: '8px', marginBottom: '20px', flexWrap: 'wrap' }}>
-        {['all', 'submitted', 'assigned', 'in_progress', 'provisionally_resolved', 'resolved'].map((s) => (
+        {['all', 'submitted', 'assigned', 'in_progress', 'provisionally_resolved', 'resolved', 'escalated'].map((s) => (
           <button key={s} onClick={() => setFilter(s)} className={filter === s ? 'btn btn-primary' : 'btn btn-ghost'} style={{ padding: '6px 14px', fontSize: '0.8rem', textTransform: 'capitalize' }}>
             {s === 'all' ? 'All' : s.replace(/_/g, ' ')}
           </button>
@@ -44,37 +185,125 @@ export default function CitizenDashboard() {
 
       {/* Complaints list */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-        {filtered.map((complaint) => (
-          <div key={complaint.id} className="glass-card" style={{ padding: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', transition: 'all 0.15s' }}
-            onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'var(--primary-light)'; e.currentTarget.style.transform = 'translateX(4px)'; }}
-            onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'var(--glass-border)'; e.currentTarget.style.transform = 'none'; }}
-          >
-            <div style={{ flex: 1 }}>
-              <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '6px' }}>
-                <span className={`badge badge-${complaint.status}`} style={{ textTransform: 'capitalize' }}>{complaint.status.replace(/_/g, ' ')}</span>
-                <span className={`badge badge-${complaint.priority}`}>{complaint.priority}</span>
-                {complaint.slaBreached && <span className="badge badge-critical">SLA ❌</span>}
-              </div>
-              <h3 style={{ fontWeight: 600, fontSize: '1rem', marginBottom: '4px' }}>{complaint.title}</h3>
-              <div style={{ display: 'flex', gap: '16px', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                <span>📋 {complaint.ref}</span>
-                <span>📁 {complaint.category}</span>
-                <span>🏢 {complaint.dept}</span>
-                <span>📍 {complaint.ward}</span>
-                <span>📅 {complaint.date}</span>
-              </div>
-            </div>
-            <div style={{ display: 'flex', gap: '8px' }}>
-              {complaint.status === 'provisionally_resolved' && (
-                <>
-                  <button className="btn btn-success" style={{ padding: '8px 14px', fontSize: '0.8rem' }}>✅ Confirm</button>
-                  <button className="btn btn-danger" style={{ padding: '8px 14px', fontSize: '0.8rem' }}>❌ Reject</button>
-                </>
-              )}
-            </div>
+        {filtered.length === 0 ? (
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '48px 24px', border: '1px dashed var(--border-color)', borderRadius: '16px', color: 'var(--text-muted)' }}>
+            <span style={{ fontSize: '2rem', marginBottom: '8px' }}>📂</span>
+            <span style={{ fontSize: '0.9rem' }}>No grievances found.</span>
           </div>
-        ))}
+        ) : (
+          filtered.map((complaint) => {
+            const isSlaBreached = complaint.sla?.breached;
+            const deptCode = complaint.assignedDepartment?.code || 'Pending Route';
+            const wardName = complaint.address?.ward || 'General';
+            const createdDate = new Date(complaint.createdAt).toLocaleDateString('en-IN', { year: 'numeric', month: 'short', day: 'numeric' });
+
+            return (
+              <div key={complaint._id} className="glass-card" style={{ padding: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', transition: 'all 0.15s' }}>
+                <div style={{ flex: 1 }}>
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '6px' }}>
+                    <span className={`badge badge-${complaint.status}`} style={{ textTransform: 'capitalize' }}>{complaint.status.replace(/_/g, ' ')}</span>
+                    <span className={`badge badge-${complaint.priority}`}>{complaint.priority}</span>
+                    {isSlaBreached && <span className="badge badge-critical">SLA ❌</span>}
+                  </div>
+                  <h3 style={{ fontWeight: 600, fontSize: '1rem', marginBottom: '4px' }}>{complaint.title}</h3>
+                  <div style={{ display: 'flex', gap: '16px', fontSize: '0.8rem', color: 'var(--text-muted)', flexWrap: 'wrap' }}>
+                    <span>📋 {complaint.referenceNumber}</span>
+                    <span>📁 {complaint.category}</span>
+                    <span>🏢 {deptCode}</span>
+                    <span>📍 {wardName}</span>
+                    <span>📅 {createdDate}</span>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: '8px' }} onClick={(e) => e.stopPropagation()}>
+                  {complaint.status === 'provisionally_resolved' && (
+                    <>
+                      <button onClick={() => setShowConfirmModal(complaint._id)} className="btn btn-success" style={{ padding: '8px 14px', fontSize: '0.8rem' }}>✅ Confirm</button>
+                      <button onClick={() => setShowRejectModal(complaint._id)} className="btn btn-danger" style={{ padding: '8px 14px', fontSize: '0.8rem' }}>❌ Reject</button>
+                    </>
+                  )}
+                </div>
+              </div>
+            );
+          })
+        )}
       </div>
+
+      {/* Confirm Resolution Modal */}
+      {showConfirmModal && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 100,
+          background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+          backdropFilter: 'blur(4px)',
+        }}>
+          <div className="glass-card" style={{ width: '90%', maxWidth: '400px', padding: '24px' }}>
+            <h3 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: '12px' }}>Confirm Resolution</h3>
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem', marginBottom: '16px' }}>
+              We're glad to resolve your issue. Please rate your satisfaction and add comments.
+            </p>
+            <form onSubmit={handleConfirm}>
+              <div style={{ marginBottom: '16px' }}>
+                <label style={{ display: 'block', fontSize: '0.85rem', marginBottom: '6px', fontWeight: 600 }}>Rating (1 - 5 Stars)</label>
+                <div style={{ display: 'flex', gap: '8px', fontSize: '1.5rem' }}>
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <span
+                      key={star}
+                      style={{ cursor: 'pointer', color: star <= rating ? '#fbbf24' : 'var(--text-muted)' }}
+                      onClick={() => setRating(star)}
+                    >
+                      ★
+                    </span>
+                  ))}
+                </div>
+              </div>
+              <textarea
+                className="input"
+                style={{ minHeight: '80px', marginBottom: '16px', resize: 'vertical' }}
+                placeholder="Share your feedback..."
+                value={comment}
+                onChange={(e) => setComment(e.target.value)}
+              />
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+                <button type="button" className="btn btn-ghost" onClick={() => { setShowConfirmModal(null); setComment(''); }} disabled={actionLoading}>Cancel</button>
+                <button type="submit" className="btn btn-success" disabled={actionLoading}>
+                  {actionLoading ? 'Saving...' : 'Confirm Resolution'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Reject Resolution Modal */}
+      {showRejectModal && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 100,
+          background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+          backdropFilter: 'blur(4px)',
+        }}>
+          <div className="glass-card" style={{ width: '90%', maxWidth: '400px', padding: '24px' }}>
+            <h3 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: '12px' }}>Reject Resolution</h3>
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem', marginBottom: '16px' }}>
+              Please specify the reasons why the resolution was unsatisfactory. The ticket will be immediately escalated.
+            </p>
+            <form onSubmit={handleReject}>
+              <textarea
+                className="input"
+                style={{ minHeight: '100px', marginBottom: '16px', resize: 'vertical' }}
+                placeholder="Reason for rejection..."
+                value={rejectReason}
+                onChange={(e) => setRejectReason(e.target.value)}
+                required
+              />
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+                <button type="button" className="btn btn-ghost" onClick={() => { setShowRejectModal(null); setRejectReason(''); }} disabled={actionLoading}>Cancel</button>
+                <button type="submit" className="btn btn-danger" disabled={actionLoading || !rejectReason.trim()}>
+                  {actionLoading ? 'Escalating...' : 'Reject & Escalate'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

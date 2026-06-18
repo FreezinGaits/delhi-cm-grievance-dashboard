@@ -11,6 +11,7 @@ export interface IComplaintCluster extends Document {
   category: string;
   radius: number;
   complaintCount: number;
+  severityScore: number;
   status: 'active' | 'resolved' | 'closed';
   lastUpdated: Date;
   createdAt: Date;
@@ -59,6 +60,12 @@ const ComplaintClusterSchema = new Schema<IComplaintCluster>(
     complaintCount: {
       type: Number,
       default: 1,
+    },
+    severityScore: {
+      type: Number,
+      default: 0,
+      min: 0,
+      max: 100,
     },
     status: {
       type: String,

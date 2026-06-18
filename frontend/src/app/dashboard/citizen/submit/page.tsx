@@ -14,10 +14,13 @@ const WARDS = ['Karol Bagh', 'Rohini', 'Dwarka', 'Saket', 'Lajpat Nagar', 'Chand
 
 export default function SubmitComplaint() {
   const [form, setForm] = useState({ title: '', description: '', category: '', subcategory: '', ward: '', landmark: '', pincode: '' });
+  const [files, setFiles] = useState<File[]>([]);
   const [submitted, setSubmitted] = useState(false);
   const [refNum, setRefNum] = useState('');
   const [locating, setLocating] = useState(false);
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
 
   const selectedCat = CATEGORIES.find((c) => c.value === form.category);
 
@@ -25,17 +28,84 @@ export default function SubmitComplaint() {
     setLocating(true);
     if (navigator.geolocation) {
       navigator.geolocation.getCurrentPosition(
-        (pos) => { setCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude }); setLocating(false); },
-        () => { setCoords({ lat: 28.6139, lng: 77.2090 }); setLocating(false); },
+        (pos) => { 
+          setCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude }); 
+          setLocating(false); 
+        },
+        () => { 
+          // Default to center of Delhi (Connaught Place)
+          setCoords({ lat: 28.6139, lng: 77.2090 }); 
+          setLocating(false); 
+        },
       );
-    } else { setCoords({ lat: 28.6139, lng: 77.2090 }); setLocating(false); }
+    } else { 
+      setCoords({ lat: 28.6139, lng: 77.2090 }); 
+      setLocating(false); 
+    }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      setFiles(Array.from(e.target.files).slice(0, 5));
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    const ref = `DEL-${new Date().toISOString().slice(0, 10).replace(/-/g, '')}-${String(Math.floor(Math.random() * 99999)).padStart(5, '0')}`;
-    setRefNum(ref);
-    setSubmitted(true);
+    setLoading(true);
+    setError('');
+
+    try {
+      const token = localStorage.getItem('accessToken');
+      const formData = new FormData();
+      formData.append('title', form.title);
+      formData.append('description', form.description);
+      formData.append('category', form.category);
+      if (form.subcategory) {
+        formData.append('subcategory', form.subcategory);
+      }
+      
+      // If coords not loaded, get dummy delhi coordinates
+      const lat = coords?.lat || 28.6139;
+      const lng = coords?.lng || 77.2090;
+      formData.append('latitude', String(lat));
+      formData.append('longitude', String(lng));
+
+      const addressData = {
+        ward: form.ward || 'General',
+        pincode: form.pincode || '110001',
+        landmark: form.landmark || '',
+        fullAddress: `${form.landmark ? form.landmark + ', ' : ''}${form.ward || 'Delhi'}, Delhi - ${form.pincode || '110001'}`,
+      };
+      formData.append('address', JSON.stringify(addressData));
+      formData.append('source', 'web');
+
+      // Append files
+      files.forEach((file) => {
+        formData.append('media', file);
+      });
+
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/v1/complaints`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token || ''}`,
+        },
+        body: formData,
+      });
+
+      const resData = await res.json();
+      if (resData.success) {
+        setRefNum(resData.data.complaint.referenceNumber);
+        setSubmitted(true);
+      } else {
+        throw new Error(resData.error?.message || 'Grievance registration failed.');
+      }
+    } catch (err: any) {
+      console.error(err);
+      setError(err.message || 'Failed to submit complaint. Please check fields.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   if (submitted) {
@@ -61,6 +131,16 @@ export default function SubmitComplaint() {
     <div className="animate-fade-in">
       <h1 style={{ fontSize: '1.75rem', fontWeight: 800, marginBottom: '4px' }}>Submit a Complaint</h1>
       <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '28px' }}>Report a civic issue for government action</p>
+
+      {error && (
+        <div style={{
+          padding: '12px 16px', borderRadius: '10px', marginBottom: '20px',
+          background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.2)',
+          color: '#fca5a5', fontSize: '0.85rem',
+        }}>
+          ⚠️ {error}
+        </div>
+      )}
 
       <form onSubmit={handleSubmit} style={{ maxWidth: '700px' }}>
         <div className="glass-card" style={{ padding: '28px', marginBottom: '20px' }}>
@@ -97,12 +177,12 @@ export default function SubmitComplaint() {
         <div className="glass-card" style={{ padding: '28px', marginBottom: '20px' }}>
           <h3 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '20px' }}>📍 Location</h3>
           <button type="button" className="btn btn-ghost" style={{ marginBottom: '16px', width: '100%' }} onClick={getLocation} disabled={locating}>
-            {locating ? '📡 Detecting location...' : coords ? `📍 Location: ${coords.lat.toFixed(4)}, ${coords.lng.toFixed(4)}` : '📡 Detect My Location'}
+            {locating ? '📡 Detecting location...' : coords ? `📍 GPS Lock Verified: ${coords.lat.toFixed(4)}, ${coords.lng.toFixed(4)}` : '📡 Detect My Location'}
           </button>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
             <div>
-              <label style={{ display: 'block', marginBottom: '6px', fontSize: '0.85rem', fontWeight: 500, color: 'var(--text-secondary)' }}>Ward</label>
-              <select className="input" value={form.ward} onChange={(e) => setForm({ ...form, ward: e.target.value })}>
+              <label style={{ display: 'block', marginBottom: '6px', fontSize: '0.85rem', fontWeight: 500, color: 'var(--text-secondary)' }}>Ward *</label>
+              <select className="input" required value={form.ward} onChange={(e) => setForm({ ...form, ward: e.target.value })}>
                 <option value="">Select ward</option>
                 {WARDS.map((w) => <option key={w} value={w}>{w}</option>)}
               </select>
@@ -120,18 +200,35 @@ export default function SubmitComplaint() {
 
         <div className="glass-card" style={{ padding: '28px', marginBottom: '20px' }}>
           <h3 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '20px' }}>📎 Evidence (Optional)</h3>
-          <div style={{
-            border: '2px dashed var(--border-color)', borderRadius: '12px', padding: '40px', textAlign: 'center',
+          <input
+            type="file"
+            id="file-upload"
+            multiple
+            accept="image/*,video/*"
+            style={{ display: 'none' }}
+            onChange={handleFileChange}
+          />
+          <label htmlFor="file-upload" style={{
+            display: 'block', border: '2px dashed var(--border-color)', borderRadius: '12px', padding: '40px', textAlign: 'center',
             color: 'var(--text-muted)', cursor: 'pointer', transition: 'all 0.2s',
           }}>
             <div style={{ fontSize: '2rem', marginBottom: '8px' }}>📷</div>
-            <p style={{ fontSize: '0.9rem' }}>Drag & drop photos or videos here</p>
-            <p style={{ fontSize: '0.75rem', marginTop: '4px' }}>Max 5 files, 10MB each • JPG, PNG, MP4</p>
-          </div>
+            {files.length > 0 ? (
+              <div>
+                <p style={{ fontSize: '0.9rem', color: 'var(--text-primary)', fontWeight: 600 }}>{files.length} file(s) selected</p>
+                <p style={{ fontSize: '0.75rem', marginTop: '4px' }}>{files.map(f => f.name).join(', ')}</p>
+              </div>
+            ) : (
+              <>
+                <p style={{ fontSize: '0.9rem' }}>Click to upload photos or videos</p>
+                <p style={{ fontSize: '0.75rem', marginTop: '4px' }}>Max 5 files, 10MB each • JPG, PNG, MP4</p>
+              </>
+            )}
+          </label>
         </div>
 
-        <button type="submit" className="btn btn-primary" style={{ width: '100%', padding: '16px', fontSize: '1rem' }}>
-          🚀 Submit Complaint
+        <button type="submit" className="btn btn-primary" style={{ width: '100%', padding: '16px', fontSize: '1rem' }} disabled={loading}>
+          {loading ? 'Submitting Grievance...' : '🚀 Submit Complaint'}
         </button>
       </form>
     </div>

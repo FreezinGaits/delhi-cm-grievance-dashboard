@@ -20,6 +20,12 @@ import cmRoutes from './routes/cm.routes';
 import analyticsRoutes from './routes/analytics.routes';
 import adminRoutes from './routes/admin.routes';
 import notificationRoutes from './routes/notification.routes';
+import whatsappRoutes from './routes/whatsapp.routes';
+import directiveRoutes from './routes/directive.routes';
+import governanceRoutes from './routes/governance.routes';
+
+// Import workers
+import { startWorkers, scheduleRecurringJobs } from './workers/queue';
 
 const app = express();
 
@@ -50,8 +56,8 @@ app.get('/api/health', (_req, res) => {
     success: true,
     data: {
       status: 'healthy',
-      service: 'dcgd-backend',
-      version: env.NODE_ENV === 'development' ? '1.0.0-dev' : '1.0.0',
+      service: 'delhi-governance-platform',
+      version: env.NODE_ENV === 'development' ? '2.0.0-dev' : '2.0.0',
       timestamp: new Date().toISOString(),
       uptime: process.uptime(),
     },
@@ -69,6 +75,11 @@ app.use(`${API_PREFIX}/cm`, cmRoutes);
 app.use(`${API_PREFIX}/analytics`, analyticsRoutes);
 app.use(`${API_PREFIX}/admin`, adminRoutes);
 app.use(`${API_PREFIX}/notifications`, notificationRoutes);
+app.use(`${API_PREFIX}/directives`, directiveRoutes);
+app.use(`${API_PREFIX}/governance`, governanceRoutes);
+
+// ── WhatsApp Webhook (outside API prefix — Meta requires root path) ──
+app.use('/webhooks/whatsapp', whatsappRoutes);
 
 // ── Error Handling ───────────────────────────────────────────
 app.use(notFoundHandler);
@@ -82,16 +93,21 @@ async function startServer(): Promise<void> {
     await connectRedis();
     await initializeMinIO();
 
+    // Start BullMQ workers
+    startWorkers();
+    await scheduleRecurringJobs();
+
     // Start HTTP server
     const server = app.listen(env.PORT, () => {
       logger.info(`
-╔══════════════════════════════════════════════════════╗
-║    Delhi CM Grievance Dashboard — Backend API        ║
-║    Environment: ${env.NODE_ENV.padEnd(37)}║
-║    Port: ${String(env.PORT).padEnd(44)}║
-║    API: http://localhost:${env.PORT}/api/v1${' '.repeat(21)}║
-║    Health: http://localhost:${env.PORT}/api/health${' '.repeat(15)}║
-╚══════════════════════════════════════════════════════╝
+╔══════════════════════════════════════════════════════════════╗
+║    Delhi Governance Intelligence Platform — Backend API      ║
+║    Environment: ${env.NODE_ENV.padEnd(45)}║
+║    Port: ${String(env.PORT).padEnd(52)}║
+║    API: http://localhost:${env.PORT}/api/v1${' '.repeat(29)}║
+║    Health: http://localhost:${env.PORT}/api/health${' '.repeat(23)}║
+║    WhatsApp Webhook: /webhooks/whatsapp${' '.repeat(22)}║
+╚══════════════════════════════════════════════════════════════╝
       `);
     });
 

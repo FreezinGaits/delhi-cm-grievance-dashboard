@@ -1,20 +1,56 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
-
-const MOCK_TIMELINE = [
-  { action: 'Complaint Submitted', status: 'submitted', date: '2026-06-15 09:32 AM', by: 'Rohit Kumar' },
-  { action: 'Auto-classified & Routed', status: 'classified', date: '2026-06-15 09:33 AM', by: 'System' },
-  { action: 'Assigned to Officer', status: 'assigned', date: '2026-06-15 10:15 AM', by: 'System' },
-  { action: 'Work in Progress', status: 'in_progress', date: '2026-06-15 02:40 PM', by: 'Rajesh Verma' },
-  { action: 'Resolution Evidence Uploaded', status: 'evidence', date: '2026-06-16 11:20 AM', by: 'Rajesh Verma' },
-  { action: 'Provisionally Resolved', status: 'provisionally_resolved', date: '2026-06-16 11:21 AM', by: 'System' },
-];
 
 export default function TrackPage() {
   const [refNum, setRefNum] = useState('');
-  const [searched, setSearched] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [result, setResult] = useState<any>(null);
+
+  const fetchTrackData = async (reference: string) => {
+    if (!reference.trim()) return;
+    try {
+      setLoading(true);
+      setError('');
+      setResult(null);
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/v1/complaints/track/${reference}`);
+      const resData = await res.json();
+      
+      if (resData.success) {
+        setResult(resData.data);
+      } else {
+        throw new Error(resData.error?.message || 'Complaint not found. Check the reference number.');
+      }
+    } catch (err: any) {
+      console.error(err);
+      setError(err.message || 'Error tracking complaint.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Check URL query parameters on load
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const ref = params.get('ref') || params.get('refNum');
+      if (ref) {
+        setRefNum(ref);
+        fetchTrackData(ref);
+      }
+    }
+  }, []);
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    fetchTrackData(refNum);
+  };
+
+  const getActionName = (action: string) => {
+    return action.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+  };
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg-primary)', padding: '2rem' }}>
@@ -30,66 +66,109 @@ export default function TrackPage() {
         <h1 style={{ fontSize: '2rem', fontWeight: 800, textAlign: 'center', marginBottom: '8px' }}>🔍 Track Your Complaint</h1>
         <p style={{ textAlign: 'center', color: 'var(--text-muted)', marginBottom: '32px' }}>Enter your reference number to see real-time status</p>
 
-        <div className="glass-card" style={{ padding: '24px', marginBottom: '32px' }}>
+        <form onSubmit={handleSearch} className="glass-card" style={{ padding: '24px', marginBottom: '32px' }}>
           <div style={{ display: 'flex', gap: '12px' }}>
-            <input className="input" style={{ flex: 1, fontSize: '1.1rem', padding: '14px 16px' }} placeholder="DEL-20260615-00023" value={refNum} onChange={(e) => setRefNum(e.target.value)} />
-            <button className="btn btn-primary" style={{ padding: '14px 28px' }} onClick={() => setSearched(true)} disabled={!refNum}>Track →</button>
+            <input 
+              className="input" 
+              style={{ flex: 1, fontSize: '1.1rem', padding: '14px 16px' }} 
+              placeholder="DEL-YYYYMMDD-XXXXX" 
+              value={refNum} 
+              onChange={(e) => setRefNum(e.target.value)} 
+              required
+            />
+            <button type="submit" className="btn btn-primary" style={{ padding: '14px 28px' }} disabled={loading || !refNum}>
+              {loading ? 'Searching...' : 'Track →'}
+            </button>
           </div>
-        </div>
+        </form>
 
-        {searched && (
+        {error && (
+          <div style={{
+            padding: '16px', borderRadius: '12px', marginBottom: '24px',
+            background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.2)',
+            color: '#fca5a5', fontSize: '0.9rem', textAlign: 'center'
+          }}>
+            ⚠️ {error}
+          </div>
+        )}
+
+        {result && (
           <div className="animate-fade-in">
             {/* Complaint summary */}
             <div className="glass-card" style={{ padding: '28px', marginBottom: '24px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
                 <div>
-                  <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '4px' }}>{refNum || 'DEL-20260615-00023'}</div>
-                  <h2 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: '8px' }}>Pipe burst on main road causing waterlogging</h2>
+                  <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '4px' }}>{result.complaint.referenceNumber}</div>
+                  <h2 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: '8px' }}>{result.complaint.title}</h2>
                   <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                    <span className="badge badge-in_progress">Provisionally Resolved</span>
-                    <span className="badge badge-high">High Priority</span>
+                    <span className={`badge badge-${result.complaint.status}`} style={{ textTransform: 'capitalize' }}>
+                      {result.complaint.status.replace(/_/g, ' ')}
+                    </span>
+                    <span className={`badge badge-${result.complaint.priority}`}>{result.complaint.priority} Priority</span>
                   </div>
                 </div>
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginTop: '16px', padding: '16px', background: 'var(--bg-secondary)', borderRadius: '10px' }}>
-                <div><div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginBottom: '2px' }}>CATEGORY</div><div style={{ fontSize: '0.9rem', fontWeight: 600 }}>Water Supply</div></div>
-                <div><div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginBottom: '2px' }}>DEPARTMENT</div><div style={{ fontSize: '0.9rem', fontWeight: 600 }}>Delhi Jal Board</div></div>
-                <div><div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginBottom: '2px' }}>WARD</div><div style={{ fontSize: '0.9rem', fontWeight: 600 }}>Karol Bagh</div></div>
-                <div><div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginBottom: '2px' }}>SLA DEADLINE</div><div style={{ fontSize: '0.9rem', fontWeight: 600, color: '#fbbf24' }}>Jun 16, 9:32 AM</div></div>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: '16px', marginTop: '16px', padding: '16px', background: 'var(--bg-secondary)', borderRadius: '10px' }}>
+                <div>
+                  <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginBottom: '2px' }}>CATEGORY</div>
+                  <div style={{ fontSize: '0.9rem', fontWeight: 600 }}>{result.complaint.category}</div>
+                </div>
+                <div>
+                  <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginBottom: '2px' }}>DEPARTMENT</div>
+                  <div style={{ fontSize: '0.9rem', fontWeight: 600 }}>{result.complaint.assignedDepartment?.name || 'Pending routing'}</div>
+                </div>
+                <div>
+                  <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginBottom: '2px' }}>SUBMITTED</div>
+                  <div style={{ fontSize: '0.9rem', fontWeight: 600 }}>
+                    {new Date(result.complaint.createdAt).toLocaleDateString('en-IN', { month: 'short', day: 'numeric', year: 'numeric' })}
+                  </div>
+                </div>
+                <div>
+                  <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginBottom: '2px' }}>SLA DEADLINE</div>
+                  <div style={{ fontSize: '0.9rem', fontWeight: 600, color: '#fbbf24' }}>
+                    {result.complaint.sla?.deadline ? new Date(result.complaint.sla.deadline).toLocaleDateString('en-IN', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'N/A'}
+                  </div>
+                </div>
               </div>
             </div>
 
             {/* Timeline */}
             <div className="glass-card" style={{ padding: '28px' }}>
               <h3 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '24px' }}>📋 Resolution Timeline</h3>
-              <div style={{ position: 'relative', paddingLeft: '28px' }}>
-                <div style={{ position: 'absolute', left: '10px', top: '8px', bottom: '8px', width: '2px', background: 'var(--border-color)' }} />
-                {MOCK_TIMELINE.map((item, i) => (
-                  <div key={i} style={{ position: 'relative', paddingBottom: '24px' }}>
-                    <div style={{
-                      position: 'absolute', left: '-22px', top: '4px',
-                      width: '12px', height: '12px', borderRadius: '50%',
-                      background: i === MOCK_TIMELINE.length - 1 ? '#3b82f6' : '#10b981',
-                      border: '2px solid var(--bg-primary)',
-                    }} />
-                    <div style={{ fontWeight: 600, fontSize: '0.9rem', marginBottom: '2px' }}>{item.action}</div>
-                    <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                      {item.date} • by {item.by}
+              {result.history?.length === 0 ? (
+                <div style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>No progress timeline registered yet.</div>
+              ) : (
+                <div style={{ position: 'relative', paddingLeft: '28px' }}>
+                  <div style={{ position: 'absolute', left: '10px', top: '8px', bottom: '8px', width: '2px', background: 'var(--border-color)' }} />
+                  {result.history.map((item: any, i: number) => (
+                    <div key={i} style={{ position: 'relative', paddingBottom: '24px' }}>
+                      <div style={{
+                        position: 'absolute', left: '-22px', top: '4px',
+                        width: '12px', height: '12px', borderRadius: '50%',
+                        background: i === result.history.length - 1 ? '#3b82f6' : '#10b981',
+                        border: '2px solid var(--bg-primary)',
+                      }} />
+                      <div style={{ fontWeight: 600, fontSize: '0.9rem', marginBottom: '2px' }}>{getActionName(item.action)}</div>
+                      {item.notes && <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '4px' }}>{item.notes}</div>}
+                      <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                        {new Date(item.createdAt).toLocaleString('en-IN', { hour12: true, month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                      </div>
                     </div>
-                  </div>
-                ))}
-              </div>
-
-              {/* Action buttons for citizen */}
-              <div style={{ marginTop: '16px', padding: '16px', background: 'rgba(59, 130, 246, 0.05)', borderRadius: '10px', border: '1px solid rgba(59, 130, 246, 0.1)' }}>
-                <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '12px' }}>
-                  🔔 Your complaint has been marked as resolved. Please confirm if the issue is fixed:
-                </p>
-                <div style={{ display: 'flex', gap: '12px' }}>
-                  <button className="btn btn-success" style={{ flex: 1 }}>✅ Yes, Issue Resolved</button>
-                  <button className="btn btn-danger" style={{ flex: 1 }}>❌ No, Not Resolved</button>
+                  ))}
                 </div>
-              </div>
+              )}
+
+              {/* Action notice for citizen */}
+              {result.complaint.status === 'provisionally_resolved' && (
+                <div style={{ marginTop: '20px', padding: '16px', background: 'rgba(59, 130, 246, 0.05)', borderRadius: '10px', border: '1px solid rgba(59, 130, 246, 0.1)', textAlign: 'center' }}>
+                  <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '12px' }}>
+                    🔔 This complaint has been marked as Provisionally Resolved.
+                  </p>
+                  <Link href="/login" className="btn btn-primary" style={{ display: 'inline-block', fontSize: '0.85rem', padding: '10px 20px' }}>
+                    Log in as Citizen to confirm resolution
+                  </Link>
+                </div>
+              )}
             </div>
           </div>
         )}

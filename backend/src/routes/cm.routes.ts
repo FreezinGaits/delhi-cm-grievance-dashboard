@@ -40,14 +40,12 @@ router.get('/officer-ledger', authenticate, authorize(...MANAGEMENT_ACCESS), asy
   } catch (error) { next(error); }
 });
 
-router.post('/spot-directive', authenticate, authorize(...CM_ACCESS), async (req: AuthRequest, res: Response, next: NextFunction) => {
-  try {
-    if (!req.user?.id) throw ApiError.unauthorized();
-    const { complaintId, directive, priority } = req.body;
-    if (!complaintId || !directive) throw ApiError.badRequest('complaintId and directive are required');
-    const data = await CMService.issueSpotDirective(complaintId, directive, priority || 'immediate', req.user.id);
-    res.json({ success: true, data });
-  } catch (error) { next(error); }
+// DEPRECATED: Use POST /api/v1/directives instead (directive.routes.ts)
+router.post('/spot-directive', authenticate, authorize(...CM_ACCESS), async (_req: AuthRequest, res: Response) => {
+  res.status(301).json({
+    success: false,
+    error: { message: 'This endpoint is deprecated. Use POST /api/v1/directives instead.' },
+  });
 });
 
 router.get('/alerts', authenticate, authorize(...MANAGEMENT_ACCESS), async (_req: AuthRequest, res: Response, next: NextFunction) => {

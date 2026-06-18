@@ -1,8 +1,9 @@
 import dotenv from 'dotenv';
 import path from 'path';
 
-// Load .env from root directory
+// Load .env — try backend root first, then monorepo root
 dotenv.config({ path: path.resolve(__dirname, '../../.env') });
+dotenv.config({ path: path.resolve(__dirname, '../../../.env') });
 
 interface EnvConfig {
   NODE_ENV: string;
