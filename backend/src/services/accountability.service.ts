@@ -2,6 +2,7 @@ import mongoose from 'mongoose';
 import { OfficerScore, PerformanceCategory, IOfficerScore } from '../models/OfficerScore';
 import { Complaint, ComplaintStatus } from '../models/Complaint';
 import { User, UserRole } from '../models/User';
+import { Department } from '../models/Department';
 import { AuditLog } from '../models/AuditLog';
 import { logger } from '../utils/logger';
 
@@ -30,6 +31,9 @@ const WEIGHTS = {
 
 // Maximum expected resolution time in hours (for scoring normalization)
 const MAX_RESOLUTION_HOURS = 168; // 7 days
+
+// Ensure Department schema is registered in Mongoose
+const _deptModelReference = Department;
 
 export class AccountabilityService {
   /**

@@ -232,8 +232,32 @@ async function seed() {
   const complaints: mongoose.Document[] = [];
 
   for (let i = 0; i < 100; i++) {
-    const catInfo = COMPLAINT_CATEGORIES[i % COMPLAINT_CATEGORIES.length];
-    const subcat = catInfo.subcategories[i % catInfo.subcategories.length];
+    let catInfo = COMPLAINT_CATEGORIES[i % COMPLAINT_CATEGORIES.length];
+    let subcat = catInfo.subcategories[i % catInfo.subcategories.length];
+    let coord = randomCoord(DELHI_CENTER, 15);
+    let status = statuses[i % statuses.length];
+
+    // Every 10th complaint, force a cluster (same category, very close coordinates, unresolved status)
+    if (i > 0 && i % 10 === 0) {
+      const prev = complaints[i - 1] as any;
+      const prevCatInfo = COMPLAINT_CATEGORIES.find((c) => c.category === prev.category);
+      if (prevCatInfo) {
+        catInfo = prevCatInfo;
+        subcat = prev.subcategory;
+        coord = {
+          lng: prev.location.coordinates[0] + (Math.random() - 0.5) * 0.0002,
+          lat: prev.location.coordinates[1] + (Math.random() - 0.5) * 0.0002,
+        };
+        const unresolvedList = [ComplaintStatus.SUBMITTED, ComplaintStatus.ASSIGNED, ComplaintStatus.IN_PROGRESS];
+        status = unresolvedList[i % unresolvedList.length];
+        
+        if (!unresolvedList.includes(prev.status)) {
+          prev.status = ComplaintStatus.ASSIGNED;
+          await prev.save();
+        }
+      }
+    }
+
     const dept = deptMap.get(catInfo.dept)!;
     const deptOfficers = officers.filter((o) => {
       const user = o as unknown as { departmentId: mongoose.Types.ObjectId };
@@ -241,8 +265,6 @@ async function seed() {
     });
     const officer = deptOfficers[i % deptOfficers.length];
     const citizen = citizens[i % citizens.length];
-    const coord = randomCoord(DELHI_CENTER, 15);
-    const status = statuses[i % statuses.length];
     const isCritical = subcat === 'Dangling Wire' || subcat === 'Sewer Overflow' || subcat === 'Contamination';
     const priority = isCritical ? ComplaintPriority.CRITICAL : i % 4 === 0 ? ComplaintPriority.HIGH : ComplaintPriority.NORMAL;
 

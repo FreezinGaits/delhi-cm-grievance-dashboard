@@ -60,6 +60,10 @@ export class ClusteringService {
     // Group by category first (only same-category complaints can cluster)
     const byCategory = new Map<string, typeof unclusteredComplaints>();
     for (const complaint of unclusteredComplaints) {
+      const [lng, lat] = complaint.location.coordinates;
+      // Skip default fallback coordinates to avoid mega-clusters
+      if (lng === 77.2090 && lat === 28.6139) continue;
+
       const cat = complaint.category;
       if (!byCategory.has(cat)) byCategory.set(cat, []);
       byCategory.get(cat)!.push(complaint);

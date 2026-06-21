@@ -56,6 +56,15 @@ export interface IUser extends Document {
   };
   isDeleted: boolean;
   deletedAt?: Date;
+  warnings?: Array<{
+    reason: string;
+    issuedBy: mongoose.Types.ObjectId;
+    issuedAt: Date;
+  }>;
+  isSuspended?: boolean;
+  suspensionReason?: string;
+  suspendedAt?: Date;
+  suspendedBy?: mongoose.Types.ObjectId;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -116,6 +125,27 @@ const UserSchema = new Schema<IUser>(
     isActive: {
       type: Boolean,
       default: true,
+    },
+    warnings: [
+      {
+        reason: { type: String, required: true },
+        issuedBy: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+        issuedAt: { type: Date, default: Date.now }
+      }
+    ],
+    isSuspended: {
+      type: Boolean,
+      default: false,
+    },
+    suspensionReason: {
+      type: String,
+    },
+    suspendedAt: {
+      type: Date,
+    },
+    suspendedBy: {
+      type: Schema.Types.ObjectId,
+      ref: 'User',
     },
     isEmailVerified: {
       type: Boolean,

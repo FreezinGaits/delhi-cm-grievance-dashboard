@@ -1,4 +1,5 @@
 import { Router, Request, Response, NextFunction } from 'express';
+import crypto from 'crypto';
 import { WhatsAppService } from '../services/whatsapp.service';
 import { WhatsAppProvider } from '../services/whatsapp.provider';
 import { WhatsAppMessage, MessageDirection } from '../models/WhatsAppMessage';
@@ -33,6 +34,23 @@ router.get('/', (req: Request, res: Response) => {
  * Parses the webhook payload and routes to the conversation engine.
  */
 router.post('/', async (req: Request, res: Response, _next: NextFunction) => {
+  // HMAC Webhook Security Validation
+  const signature = req.headers['x-hub-signature-256'] as string;
+  const secret = process.env.WHATSAPP_APP_SECRET;
+
+  if (secret && signature) {
+    const rawBody = (req as any).rawBody;
+    if (rawBody) {
+      const hash = crypto.createHmac('sha256', secret).update(rawBody).digest('hex');
+      const expectedSignature = `sha256=${hash}`;
+      
+      if (signature !== expectedSignature) {
+        logger.warn('[WhatsApp Webhook] Invalid HMAC signature. Possible spoofing attack.');
+        return res.status(403).send('Forbidden');
+      }
+    }
+  }
+
   // Always respond 200 immediately to acknowledge receipt (Meta requires this)
   res.status(200).send('EVENT_RECEIVED');
 
@@ -61,13 +79,43 @@ router.post('/', async (req: Request, res: Response, _next: NextFunction) => {
 
           logger.info(`[WhatsApp Webhook] Message from ${from}: type=${type}`);
 
-          await WhatsAppService.processIncomingMessage(from, {
-            type,
-            text: message.text,
-            location: message.location,
-            image: message.image,
-            id: message.id,
-          });
+          // Handle interactive message responses (button/list replies)
+          let processedMessage: {
+            type: string;
+            text?: { body: string };
+            location?: { latitude: number; longitude: number; name?: string; address?: string };
+            image?: { id: string; mime_type: string };
+            id?: string;
+          };
+
+          if (type === 'interactive') {
+            // Extract the reply from interactive button or list selection
+            const interactiveType = message.interactive?.type; // 'button_reply' or 'list_reply'
+            const replyId = interactiveType === 'button_reply'
+              ? message.interactive?.button_reply?.id
+              : message.interactive?.list_reply?.id;
+            const replyTitle = interactiveType === 'button_reply'
+              ? message.interactive?.button_reply?.title
+              : message.interactive?.list_reply?.title;
+
+            logger.info(`[WhatsApp Webhook] Interactive reply: ${interactiveType} → id=${replyId}, title=${replyTitle}`);
+
+            processedMessage = {
+              type: 'text',
+              text: { body: replyId || replyTitle || '' },
+              id: message.id,
+            };
+          } else {
+            processedMessage = {
+              type,
+              text: message.text,
+              location: message.location,
+              image: message.image,
+              id: message.id,
+            };
+          }
+
+          await WhatsAppService.processIncomingMessage(from, processedMessage);
         }
 
         // Process delivery/read status updates

@@ -129,8 +129,8 @@ export default function SubmitComplaint() {
 
   return (
     <div className="animate-fade-in">
-      <h1 style={{ fontSize: '1.75rem', fontWeight: 800, marginBottom: '4px' }}>Submit a Complaint</h1>
-      <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '28px' }}>Report a civic issue for government action</p>
+      <h1 style={{ fontSize: 'clamp(1.25rem, 3vw, 1.75rem)', fontWeight: 800, marginBottom: '4px' }}>Submit a Complaint</h1>
+      <p style={{ color: 'var(--text-muted)', fontSize: 'clamp(0.8rem, 1.5vw, 0.9rem)', marginBottom: '24px' }}>Report a civic issue for government action</p>
 
       {error && (
         <div style={{
@@ -156,7 +156,7 @@ export default function SubmitComplaint() {
             <textarea className="input" required rows={4} placeholder="Provide details about the issue, including duration and impact..." value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} style={{ resize: 'vertical' }} />
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 220px), 1fr))', gap: '16px', marginBottom: '16px' }}>
             <div>
               <label style={{ display: 'block', marginBottom: '6px', fontSize: '0.85rem', fontWeight: 500, color: 'var(--text-secondary)' }}>Category *</label>
               <select className="input" required value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value, subcategory: '' })}>
@@ -179,7 +179,7 @@ export default function SubmitComplaint() {
           <button type="button" className="btn btn-ghost" style={{ marginBottom: '16px', width: '100%' }} onClick={getLocation} disabled={locating}>
             {locating ? '📡 Detecting location...' : coords ? `📍 GPS Lock Verified: ${coords.lat.toFixed(4)}, ${coords.lng.toFixed(4)}` : '📡 Detect My Location'}
           </button>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 220px), 1fr))', gap: '16px', marginBottom: '16px' }}>
             <div>
               <label style={{ display: 'block', marginBottom: '6px', fontSize: '0.85rem', fontWeight: 500, color: 'var(--text-secondary)' }}>Ward *</label>
               <select className="input" required value={form.ward} onChange={(e) => setForm({ ...form, ward: e.target.value })}>

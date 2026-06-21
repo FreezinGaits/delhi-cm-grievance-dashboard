@@ -39,7 +39,12 @@ app.use(cors({
 }));
 
 // ── Body Parsing ─────────────────────────────────────────────
-app.use(express.json({ limit: '1mb' }));
+app.use(express.json({
+  limit: '1mb',
+  verify: (req: any, _res, buf) => {
+    req.rawBody = buf;
+  },
+}));
 app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 app.use(compression());
 
@@ -78,6 +83,10 @@ app.use(`${API_PREFIX}/notifications`, notificationRoutes);
 app.use(`${API_PREFIX}/directives`, directiveRoutes);
 app.use(`${API_PREFIX}/governance`, governanceRoutes);
 
+// Serve static file uploads
+import path from 'path';
+app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
+
 // ── WhatsApp Webhook (outside API prefix — Meta requires root path) ──
 app.use('/webhooks/whatsapp', whatsappRoutes);
 
@@ -93,9 +102,11 @@ async function startServer(): Promise<void> {
     await connectRedis();
     await initializeMinIO();
 
-    // Start BullMQ workers
+    // Start BullMQ workers and schedule recurring jobs in background
     startWorkers();
-    await scheduleRecurringJobs();
+    scheduleRecurringJobs().catch((err) => {
+      logger.warn('[BullMQ] Error scheduling recurring jobs:', err);
+    });
 
     // Start HTTP server
     const server = app.listen(env.PORT, () => {

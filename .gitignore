@@ -141,3 +141,9 @@ dist
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 .vite/
+
+# Application uploads & temp logs
+backend/uploads/
+startup_log.txt
+idea_pdf_text.txt
+scripts/extract_pdf.py

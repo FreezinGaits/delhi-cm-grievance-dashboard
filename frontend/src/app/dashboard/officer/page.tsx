@@ -29,6 +29,7 @@ export default function OfficerDashboard() {
   // Modals / Input states
   const [noteText, setNoteText] = useState('');
   const [evidenceText, setEvidenceText] = useState('');
+  const [evidenceFile, setEvidenceFile] = useState<File | null>(null);
   const [showNoteModal, setShowNoteModal] = useState<string | null>(null);
   const [showEvidenceModal, setShowEvidenceModal] = useState<any | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
@@ -135,27 +136,30 @@ export default function OfficerDashboard() {
       setError('');
       const token = localStorage.getItem('accessToken');
       
-      // Grab coordinates from the ticket itself to pass GPS lock verification
       const ticket = showEvidenceModal;
       const gpsLng = ticket.location?.coordinates?.[0];
       const gpsLat = ticket.location?.coordinates?.[1];
+
+      const formData = new FormData();
+      formData.append('description', evidenceText);
+      if (gpsLat !== undefined) formData.append('gpsLat', String(gpsLat));
+      if (gpsLng !== undefined) formData.append('gpsLng', String(gpsLng));
+      if (evidenceFile) {
+        formData.append('evidenceImage', evidenceFile);
+      }
 
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/v1/officers/complaints/${ticket._id}/evidence`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token || ''}`,
-          'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          description: evidenceText,
-          gpsLat,
-          gpsLng,
-        }),
+        body: formData,
       });
 
       const resData = await res.json();
       if (resData.success) {
         setEvidenceText('');
+        setEvidenceFile(null);
         setShowEvidenceModal(null);
         setSelected(null);
         alert(resData.data.message || 'Evidence submitted!');
@@ -189,16 +193,16 @@ export default function OfficerDashboard() {
   return (
     <div className="animate-fade-in">
       {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-        <div>
-          <h1 style={{ fontSize: '1.75rem', fontWeight: 800, marginBottom: '4px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '24px', flexWrap: 'wrap', gap: '12px' }}>
+        <div style={{ minWidth: 0 }}>
+          <h1 style={{ fontSize: 'clamp(1.25rem, 3vw, 1.75rem)', fontWeight: 800, marginBottom: '4px' }}>
             {activeTab === 'kanban' ? 'Kanban Board' : 'My Complaints'}
           </h1>
-          <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>
+          <p style={{ color: 'var(--text-muted)', fontSize: 'clamp(0.75rem, 1.5vw, 0.9rem)' }}>
             {metrics.totalAssigned || 0} tickets • {metrics.slaBreaches || 0} SLA breaches
           </p>
         </div>
-        <div style={{ display: 'flex', gap: '8px' }}>
+        <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
           <button onClick={fetchKanbanData} className="btn btn-ghost" style={{ fontSize: '0.8rem' }}>
             🔄 Refresh
           </button>
@@ -216,11 +220,11 @@ export default function OfficerDashboard() {
       )}
 
       {activeTab === 'kanban' && (
-        <div style={{ display: 'grid', gridTemplateColumns: `repeat(${COLUMNS.length}, 1fr)`, gap: '12px', overflowX: 'auto', paddingBottom: '20px' }}>
+        <div style={{ display: 'flex', gap: '12px', overflowX: 'auto', paddingBottom: '20px', WebkitOverflowScrolling: 'touch' }}>
           {COLUMNS.map((col) => {
             const tickets = columnsData[col.key] || [];
             return (
-              <div key={col.key} style={{ minWidth: '240px', background: 'rgba(15, 23, 42, 0.2)', padding: '10px', borderRadius: '12px' }}>
+              <div key={col.key} style={{ minWidth: '260px', flex: '1 0 260px', background: 'rgba(15, 23, 42, 0.2)', padding: '10px', borderRadius: '12px' }}>
                 <div style={{
                   display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                   padding: '10px 12px', marginBottom: '12px', borderRadius: '10px',
@@ -402,7 +406,7 @@ export default function OfficerDashboard() {
           <div className="glass-card" style={{ width: '90%', maxWidth: '440px', padding: '24px' }}>
             <h3 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: '8px' }}>Submit Resolution Evidence</h3>
             <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem', marginBottom: '16px' }}>
-              Note: This action automatically transmits a simulated GPS lock from the site ({showEvidenceModal.location?.coordinates?.[1]}, {showEvidenceModal.location?.coordinates?.[0]}) to satisfy compliance verification.
+              Note: This photo will be verified by the server for embedded EXIF GPS tags matching the complaint location.
             </p>
             <form onSubmit={handleUploadEvidence}>
               <textarea
@@ -413,8 +417,21 @@ export default function OfficerDashboard() {
                 onChange={(e) => setEvidenceText(e.target.value)}
                 required
               />
+              
+              <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '6px' }}>
+                Upload Resolution Photo (JPEG/PNG with location metadata):
+              </label>
+              <input
+                type="file"
+                accept="image/jpeg,image/png,image/jpg"
+                className="input"
+                style={{ marginBottom: '16px', padding: '6px 12px' }}
+                onChange={(e) => setEvidenceFile(e.target.files?.[0] || null)}
+                required
+              />
+
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
-                <button type="button" className="btn btn-ghost" onClick={() => { setShowEvidenceModal(null); setEvidenceText(''); }} disabled={actionLoading}>Cancel</button>
+                <button type="button" className="btn btn-ghost" onClick={() => { setShowEvidenceModal(null); setEvidenceText(''); setEvidenceFile(null); }} disabled={actionLoading}>Cancel</button>
                 <button type="submit" className="btn btn-success" disabled={actionLoading || !evidenceText.trim()}>
                   {actionLoading ? 'Submitting...' : 'Resolve Ticket'}
                 </button>

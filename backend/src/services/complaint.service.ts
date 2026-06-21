@@ -3,6 +3,7 @@ import { Complaint, ComplaintStatus, ComplaintPriority, ComplaintSource, ICompla
 import { ComplaintHistory, HistoryAction } from '../models/ComplaintHistory';
 import { Department } from '../models/Department';
 import { AuditLog } from '../models/AuditLog';
+import { Counter } from '../models/Counter';
 import { ApiError } from '../middleware/error.middleware';
 import { logger } from '../utils/logger';
 
@@ -76,18 +77,13 @@ export class ComplaintService {
     const dateStr = today.toISOString().slice(0, 10).replace(/-/g, '');
     const prefix = `DEL-${dateStr}-`;
 
-    // Find last complaint today
-    const lastComplaint = await Complaint.findOne({
-      referenceNumber: { $regex: `^${prefix}` },
-    }).sort({ referenceNumber: -1 });
+    const counter = await Counter.findOneAndUpdate(
+      { _id: prefix },
+      { $inc: { seq: 1 } },
+      { new: true, upsert: true }
+    );
 
-    let sequence = 1;
-    if (lastComplaint) {
-      const lastSeq = parseInt(lastComplaint.referenceNumber.split('-')[2], 10);
-      sequence = lastSeq + 1;
-    }
-
-    return `${prefix}${String(sequence).padStart(5, '0')}`;
+    return `${prefix}${String(counter.seq).padStart(5, '0')}`;
   }
 
   /**
@@ -107,10 +103,16 @@ export class ComplaintService {
    * Auto-route complaint to department based on category
    */
   private static async autoRoute(category: string): Promise<mongoose.Types.ObjectId | undefined> {
-    const deptCode = CATEGORY_DEPT_MAP[category];
-    if (!deptCode) return undefined;
+    let deptCode = CATEGORY_DEPT_MAP[category];
+    if (!deptCode) deptCode = 'GENERAL';
 
-    const dept = await Department.findOne({ code: deptCode, isActive: true });
+    let dept = await Department.findOne({ code: deptCode, isActive: true });
+    
+    // Fallback if GENERAL doesn't exist either
+    if (!dept) {
+      dept = await Department.findOne({ isActive: true });
+    }
+    
     return dept?._id as mongoose.Types.ObjectId | undefined;
   }
 
@@ -118,6 +120,14 @@ export class ComplaintService {
    * Create a new complaint
    */
   static async createComplaint(data: CreateComplaintData): Promise<IComplaint> {
+    // Validate coordinates are within Delhi bounds roughly
+    if (
+      data.latitude < 28.4 || data.latitude > 28.9 ||
+      data.longitude < 76.8 || data.longitude > 77.3
+    ) {
+      throw ApiError.badRequest('Location coordinates are outside of Delhi boundaries.');
+    }
+
     const referenceNumber = await this.generateReferenceNumber();
 
     // Auto-detect critical
@@ -280,8 +290,21 @@ export class ComplaintService {
     return { complaint, history };
   }
 
+  // Valid state machine transitions (key -> allowed next states)
+  private static readonly VALID_TRANSITIONS: Record<string, string[]> = {
+    [ComplaintStatus.SUBMITTED]: [ComplaintStatus.UNDER_REVIEW, ComplaintStatus.ASSIGNED, ComplaintStatus.ESCALATED],
+    [ComplaintStatus.UNDER_REVIEW]: [ComplaintStatus.ASSIGNED, ComplaintStatus.ESCALATED],
+    [ComplaintStatus.ASSIGNED]: [ComplaintStatus.IN_PROGRESS, ComplaintStatus.ESCALATED],
+    [ComplaintStatus.IN_PROGRESS]: [ComplaintStatus.PROVISIONALLY_RESOLVED, ComplaintStatus.ESCALATED],
+    [ComplaintStatus.PROVISIONALLY_RESOLVED]: [ComplaintStatus.RESOLVED, ComplaintStatus.REJECTED, ComplaintStatus.ESCALATED],
+    [ComplaintStatus.RESOLVED]: [ComplaintStatus.CLOSED],
+    [ComplaintStatus.REJECTED]: [ComplaintStatus.IN_PROGRESS, ComplaintStatus.ASSIGNED, ComplaintStatus.ESCALATED],
+    [ComplaintStatus.ESCALATED]: [ComplaintStatus.ASSIGNED, ComplaintStatus.IN_PROGRESS],
+    [ComplaintStatus.CLOSED]: [], // terminal state
+  };
+
   /**
-   * Update complaint status
+   * Update complaint status with state-machine transition validation
    */
   static async updateStatus(
     complaintId: string,
@@ -293,7 +316,42 @@ export class ComplaintService {
     if (!complaint) throw ApiError.notFound('Complaint not found');
 
     const oldStatus = complaint.status;
+
+    // Validate transition (escalated is always allowed as a CM override)
+    const allowed = this.VALID_TRANSITIONS[oldStatus] || [];
+    if (newStatus !== ComplaintStatus.ESCALATED && !allowed.includes(newStatus)) {
+      throw ApiError.badRequest(
+        `Invalid status transition: ${oldStatus} → ${newStatus}. Allowed: ${allowed.join(', ') || 'none (terminal state)'}`,
+      );
+    }
+
     complaint.status = newStatus;
+
+    if (newStatus === ComplaintStatus.ESCALATED) {
+      complaint.priority = ComplaintPriority.CRITICAL;
+      complaint.isCritical = true;
+      const level = (complaint.escalationLevel || 0) + 1;
+      complaint.escalationLevel = level;
+      complaint.escalationHistory.push({
+        level,
+        reason: notes || 'Escalated to Critical by CM during field visit / map review',
+        escalatedAt: new Date(),
+        escalatedBy: new mongoose.Types.ObjectId(userId),
+      });
+
+      // Recalculate SLA based on department's critical defaults
+      if (complaint.assignedDepartment) {
+        const dept = await Department.findById(complaint.assignedDepartment);
+        if (dept) {
+          const hours = dept.slaDefaults.critical;
+          complaint.sla = {
+            deadline: new Date(Date.now() + hours * 3600000),
+            breached: false,
+          };
+        }
+      }
+    }
+
     await complaint.save();
 
     await ComplaintHistory.create({

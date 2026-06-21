@@ -8,6 +8,8 @@ export default function TrackPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [result, setResult] = useState<any>(null);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [dashboardUrl, setDashboardUrl] = useState('/dashboard');
 
   const fetchTrackData = async (reference: string) => {
     if (!reference.trim()) return;
@@ -31,9 +33,30 @@ export default function TrackPage() {
     }
   };
 
-  // Check URL query parameters on load
+  // Check URL query parameters and logged in status on load
   useEffect(() => {
     if (typeof window !== 'undefined') {
+      setIsLoggedIn(!!localStorage.getItem('accessToken'));
+      
+      const storedUser = localStorage.getItem('user');
+      if (storedUser) {
+        try {
+          const userObj = JSON.parse(storedUser);
+          const role = userObj.role;
+          if (role === 'cm') {
+            setDashboardUrl('/dashboard/cm');
+          } else if (role === 'officer' || role === 'department_head') {
+            setDashboardUrl('/dashboard/officer');
+          } else if (role === 'admin') {
+            setDashboardUrl('/dashboard/admin');
+          } else {
+            setDashboardUrl('/dashboard/citizen');
+          }
+        } catch (e) {
+          setDashboardUrl('/dashboard/citizen');
+        }
+      }
+
       const params = new URLSearchParams(window.location.search);
       const ref = params.get('ref') || params.get('refNum');
       if (ref) {
@@ -53,21 +76,25 @@ export default function TrackPage() {
   };
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg-primary)', padding: '2rem' }}>
+    <div style={{ minHeight: '100vh', background: 'var(--bg-primary)', padding: 'clamp(1rem, 3vw, 2rem)' }}>
       <nav style={{ maxWidth: '800px', margin: '0 auto 40px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: '10px', textDecoration: 'none', color: 'var(--text-primary)' }}>
           <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'var(--gradient-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px', fontWeight: 800, color: 'white' }}>D</div>
           <span style={{ fontWeight: 700 }}>Delhi CM Grievance</span>
         </Link>
-        <Link href="/login" className="btn btn-ghost" style={{ fontSize: '0.85rem' }}>Login</Link>
+        {isLoggedIn ? (
+          <Link href={dashboardUrl} className="btn btn-ghost" style={{ fontSize: '0.85rem' }}>Dashboard</Link>
+        ) : (
+          <Link href="/login" className="btn btn-ghost" style={{ fontSize: '0.85rem' }}>Login</Link>
+        )}
       </nav>
 
       <div className="animate-fade-in" style={{ maxWidth: '800px', margin: '0 auto' }}>
-        <h1 style={{ fontSize: '2rem', fontWeight: 800, textAlign: 'center', marginBottom: '8px' }}>🔍 Track Your Complaint</h1>
-        <p style={{ textAlign: 'center', color: 'var(--text-muted)', marginBottom: '32px' }}>Enter your reference number to see real-time status</p>
+      <h1 style={{ fontSize: 'clamp(1.4rem, 4vw, 2rem)', fontWeight: 800, textAlign: 'center', marginBottom: '8px' }}>🔍 Track Your Complaint</h1>
+        <p style={{ textAlign: 'center', color: 'var(--text-muted)', marginBottom: '28px', fontSize: 'clamp(0.8rem, 1.5vw, 1rem)' }}>Enter your reference number to see real-time status</p>
 
         <form onSubmit={handleSearch} className="glass-card" style={{ padding: '24px', marginBottom: '32px' }}>
-          <div style={{ display: 'flex', gap: '12px' }}>
+          <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
             <input 
               className="input" 
               style={{ flex: 1, fontSize: '1.1rem', padding: '14px 16px' }} 

@@ -1,4 +1,5 @@
 import { Router, Response, NextFunction } from 'express';
+import mongoose from 'mongoose';
 import { AuthRequest } from '../middleware/auth.middleware';
 import { authenticate } from '../middleware/auth.middleware';
 import { authorize, CM_ACCESS, MANAGEMENT_ACCESS } from '../middleware/rbac.middleware';
@@ -57,6 +58,58 @@ router.get('/alerts', authenticate, authorize(...MANAGEMENT_ACCESS), async (_req
       isDeleted: false,
     }).populate('assignedDepartment', 'name code').populate('assignedOfficer', 'name').sort({ createdAt: -1 }).limit(20).lean();
     res.json({ success: true, data: alerts });
+  } catch (error) { next(error); }
+});
+
+router.post('/officers/:id/warning', authenticate, authorize(...CM_ACCESS), async (req: AuthRequest, res: Response, next: NextFunction) => {
+  try {
+    const { reason } = req.body;
+    if (!reason) throw ApiError.badRequest('Reason is required');
+    const { User } = await import('../models/User');
+    const officer = await User.findById(req.params.id);
+    if (!officer || officer.role !== 'officer') throw ApiError.notFound('Officer not found');
+    
+    if (!officer.warnings) {
+      officer.warnings = [];
+    }
+    officer.warnings.push({
+      reason,
+      issuedBy: new mongoose.Types.ObjectId(req.user!.id),
+      issuedAt: new Date()
+    });
+    
+    await officer.save();
+    res.json({ success: true, message: 'Disciplinary warning issued successfully', officer });
+  } catch (error) { next(error); }
+});
+
+router.post('/officers/:id/suspend', authenticate, authorize(...CM_ACCESS), async (req: AuthRequest, res: Response, next: NextFunction) => {
+  try {
+    const { suspend, reason } = req.body;
+    if (suspend && !reason) throw ApiError.badRequest('Reason is required for suspension');
+    
+    const { User } = await import('../models/User');
+    const officer = await User.findById(req.params.id);
+    if (!officer || officer.role !== 'officer') throw ApiError.notFound('Officer not found');
+    
+    officer.isSuspended = !!suspend;
+    officer.isActive = !suspend;
+    if (suspend) {
+      officer.suspensionReason = reason;
+      officer.suspendedAt = new Date();
+      officer.suspendedBy = new mongoose.Types.ObjectId(req.user!.id);
+    } else {
+      officer.suspensionReason = undefined;
+      officer.suspendedAt = undefined;
+      officer.suspendedBy = undefined;
+    }
+    
+    await officer.save();
+    res.json({ 
+      success: true, 
+      message: suspend ? 'Officer suspended successfully' : 'Officer unsuspended successfully', 
+      officer 
+    });
   } catch (error) { next(error); }
 });
 

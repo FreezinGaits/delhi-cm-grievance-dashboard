@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
@@ -47,7 +47,29 @@ const NAV_ITEMS: Record<string, Array<{ label: string; href: string; icon: strin
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
   const pathname = usePathname();
+
+  // Detect mobile viewport
+  const checkMobile = useCallback(() => {
+    const mobile = window.innerWidth <= 768;
+    setIsMobile(mobile);
+    if (mobile) {
+      setSidebarOpen(true); // Always show labels in mobile slide-out
+    }
+  }, []);
+
+  useEffect(() => {
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, [checkMobile]);
+
+  // Close mobile sidebar on route change
+  useEffect(() => {
+    if (isMobile) setMobileOpen(false);
+  }, [pathname, isMobile]);
 
   useEffect(() => {
     const stored = localStorage.getItem('user');
@@ -76,40 +98,86 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const navItems = NAV_ITEMS[user.role] || NAV_ITEMS.citizen;
   const roleLabel = user.role === 'cm' ? 'Chief Minister' : user.role === 'department_head' ? 'Dept Head' : user.role.charAt(0).toUpperCase() + user.role.slice(1);
 
+  const sidebarVisible = isMobile ? mobileOpen : true;
+  const showLabels = isMobile ? true : sidebarOpen;
+  const sidebarWidth = showLabels ? 260 : 72;
+
   return (
     <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--bg-primary)' }}>
+
+      {/* Mobile hamburger button */}
+      {!mobileOpen && (
+        <button
+          className="mobile-menu-btn"
+          onClick={() => setMobileOpen(true)}
+          aria-label="Open navigation menu"
+        >
+          ☰
+        </button>
+      )}
+
+      {/* Mobile overlay backdrop */}
+      {isMobile && (
+        <div
+          className={`sidebar-overlay ${mobileOpen ? 'active' : ''}`}
+          onClick={() => setMobileOpen(false)}
+          style={{ zIndex: 9999 }}
+        />
+      )}
+
       {/* Sidebar */}
       <aside style={{
-        width: sidebarOpen ? '260px' : '72px',
+        width: `${sidebarWidth}px`,
+        minWidth: `${sidebarWidth}px`,
         background: 'var(--bg-secondary)',
         borderRight: '1px solid var(--border-color)',
         display: 'flex',
         flexDirection: 'column',
-        transition: 'width 0.3s ease',
+        transition: isMobile ? 'transform 0.3s cubic-bezier(0.4, 0, 0.2, 1)' : 'width 0.3s ease, min-width 0.3s ease',
         position: 'fixed',
         top: 0,
         bottom: 0,
         left: 0,
-        zIndex: 40,
+        zIndex: 10000,
+        ...(isMobile ? {
+          transform: mobileOpen ? 'translateX(0)' : 'translateX(-100%)',
+          boxShadow: mobileOpen ? '8px 0 32px rgba(0,0,0,0.5)' : 'none',
+        } : {}),
+        overflowY: 'auto',
+        overflowX: 'hidden',
       }}>
         {/* Logo area */}
         <div style={{
-          padding: sidebarOpen ? '20px 20px' : '20px 16px',
+          padding: showLabels ? '20px 20px' : '20px 16px',
           borderBottom: '1px solid var(--border-color)',
           display: 'flex',
           alignItems: 'center',
           gap: '12px',
+          flexShrink: 0,
         }}>
           <div style={{
             width: '36px', height: '36px', minWidth: '36px', borderRadius: '10px',
             background: 'var(--gradient-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center',
             fontSize: '18px', fontWeight: 800, color: 'white',
           }}>D</div>
-          {sidebarOpen && (
+          {showLabels && (
             <div style={{ overflow: 'hidden' }}>
               <div style={{ fontWeight: 700, fontSize: '0.9rem', whiteSpace: 'nowrap' }}>Delhi CM</div>
               <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)', letterSpacing: '0.05em' }}>GOVERNANCE PLATFORM</div>
             </div>
+          )}
+          {/* Mobile close button */}
+          {isMobile && (
+            <button
+              onClick={() => setMobileOpen(false)}
+              style={{
+                marginLeft: 'auto', background: 'transparent', border: 'none',
+                color: 'var(--text-muted)', fontSize: '1.2rem', cursor: 'pointer', padding: '4px',
+              }}
+              aria-label="Close navigation menu"
+            >
+              ✕
+            </button>
           )}
         </div>
 
@@ -123,19 +191,19 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 href={item.href}
                 style={{
                   display: 'flex', alignItems: 'center', gap: '12px',
-                  padding: sidebarOpen ? '10px 12px' : '10px',
+                  padding: showLabels ? '10px 12px' : '10px',
                   borderRadius: '10px', textDecoration: 'none',
                   background: isActive ? 'rgba(59, 130, 246, 0.1)' : 'transparent',
                   color: isActive ? '#93c5fd' : 'var(--text-secondary)',
                   fontWeight: isActive ? 600 : 400,
                   fontSize: '0.9rem',
                   transition: 'all 0.15s',
-                  justifyContent: sidebarOpen ? 'flex-start' : 'center',
+                  justifyContent: showLabels ? 'flex-start' : 'center',
                   border: isActive ? '1px solid rgba(59, 130, 246, 0.15)' : '1px solid transparent',
                 }}
               >
                 <span style={{ fontSize: '1.1rem', minWidth: '24px', textAlign: 'center' }}>{item.icon}</span>
-                {sidebarOpen && <span style={{ whiteSpace: 'nowrap' }}>{item.label}</span>}
+                {showLabels && <span style={{ whiteSpace: 'nowrap' }}>{item.label}</span>}
               </Link>
             );
           })}
@@ -143,10 +211,11 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
         {/* User section */}
         <div style={{
-          padding: sidebarOpen ? '16px 16px' : '16px 8px',
+          padding: showLabels ? '16px 16px' : '16px 8px',
           borderTop: '1px solid var(--border-color)',
+          flexShrink: 0,
         }}>
-          {sidebarOpen && (
+          {showLabels && (
             <div style={{ marginBottom: '12px' }}>
               <div style={{ fontWeight: 600, fontSize: '0.85rem', marginBottom: '2px' }}>{user.name}</div>
               <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{roleLabel}</div>
@@ -160,32 +229,49 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
             }}
           >
-            🚪 {sidebarOpen && 'Sign Out'}
+            🚪 {showLabels && 'Sign Out'}
           </button>
         </div>
+      </aside>
 
-        {/* Toggle */}
+      {/* Desktop Toggle (hidden on mobile) */}
+      {!isMobile && (
         <button
           onClick={() => setSidebarOpen(!sidebarOpen)}
           style={{
-            position: 'absolute', top: '28px', right: '-14px',
-            width: '28px', height: '28px', borderRadius: '50%',
-            background: 'var(--bg-card)', border: '1px solid var(--border-color)',
-            color: 'var(--text-muted)', cursor: 'pointer', fontSize: '0.7rem',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            position: 'fixed',
+            top: '28px',
+            left: `${sidebarWidth - 14}px`,
+            zIndex: 10001,
+            width: '28px',
+            height: '28px',
+            borderRadius: '50%',
+            background: 'var(--bg-card)',
+            border: '1px solid var(--border-color)',
+            color: 'var(--text-muted)',
+            cursor: 'pointer',
+            fontSize: '0.7rem',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            transition: 'left 0.3s ease',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
           }}
         >
           {sidebarOpen ? '◂' : '▸'}
         </button>
-      </aside>
+      )}
 
       {/* Main content */}
       <main style={{
         flex: 1,
-        marginLeft: sidebarOpen ? '260px' : '72px',
+        marginLeft: isMobile ? '0px' : (sidebarOpen ? '260px' : '72px'),
         transition: 'margin-left 0.3s ease',
-        padding: '24px 32px',
+        padding: isMobile ? '72px 16px 24px' : '24px 32px',
         minHeight: '100vh',
+        width: '100%',
+        maxWidth: '100vw',
+        overflow: 'hidden',
       }}>
         {children}
       </main>

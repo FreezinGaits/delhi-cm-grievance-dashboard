@@ -17,6 +17,7 @@ export default function CitizenDashboard() {
   const [rejectReason, setRejectReason] = useState('');
   const [actionLoading, setActionLoading] = useState(false);
 
+  
   const fetchComplaints = async () => {
     try {
       setLoading(true);
@@ -118,7 +119,7 @@ export default function CitizenDashboard() {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
         <div style={{ height: '40px', width: '250px' }} className="skeleton" />
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 140px), 1fr))', gap: '16px' }}>
           {[1, 2, 3, 4].map((i) => (
             <div key={i} style={{ height: '80px' }} className="skeleton" />
           ))}
@@ -136,12 +137,12 @@ export default function CitizenDashboard() {
 
   return (
     <div className="animate-fade-in">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '28px' }}>
-        <div>
-          <h1 style={{ fontSize: '1.75rem', fontWeight: 800, marginBottom: '4px' }}>My Complaints</h1>
-          <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>Track and manage your submitted grievances</p>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '24px', flexWrap: 'wrap', gap: '12px' }}>
+        <div style={{ minWidth: 0 }}>
+          <h1 style={{ fontSize: 'clamp(1.25rem, 3vw, 1.75rem)', fontWeight: 800, marginBottom: '4px' }}>My Complaints</h1>
+          <p style={{ color: 'var(--text-muted)', fontSize: 'clamp(0.75rem, 1.5vw, 0.9rem)' }}>Track and manage your submitted grievances</p>
         </div>
-        <Link href="/dashboard/citizen/submit" className="btn btn-primary">✏️ New Complaint</Link>
+        <Link href="/dashboard/citizen/submit" className="btn btn-primary" style={{ flexShrink: 0 }}>✏️ New Complaint</Link>
       </div>
 
       {error && (
@@ -155,7 +156,7 @@ export default function CitizenDashboard() {
       )}
 
       {/* Quick stats */}
-      <div className="stagger-children" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '16px', marginBottom: '28px' }}>
+      <div className="stagger-children" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 140px), 1fr))', gap: '12px', marginBottom: '24px' }}>
         <div className="stat-card">
           <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '4px' }}>Total</div>
           <div style={{ fontSize: '1.5rem', fontWeight: 800 }}>{total}</div>
@@ -198,7 +199,7 @@ export default function CitizenDashboard() {
             const createdDate = new Date(complaint.createdAt).toLocaleDateString('en-IN', { year: 'numeric', month: 'short', day: 'numeric' });
 
             return (
-              <div key={complaint._id} className="glass-card" style={{ padding: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', transition: 'all 0.15s' }}>
+              <div key={complaint._id} className="glass-card" style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: '12px', transition: 'all 0.15s' }}>
                 <div style={{ flex: 1 }}>
                   <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '6px' }}>
                     <span className={`badge badge-${complaint.status}`} style={{ textTransform: 'capitalize' }}>{complaint.status.replace(/_/g, ' ')}</span>
@@ -213,8 +214,48 @@ export default function CitizenDashboard() {
                     <span>📍 {wardName}</span>
                     <span>📅 {createdDate}</span>
                   </div>
+
+                  {complaint.resolutionEvidence && (
+                    <div style={{
+                      marginTop: '12px',
+                      padding: '12px',
+                      background: 'rgba(255, 255, 255, 0.02)',
+                      borderRadius: '8px',
+                      border: '1px solid var(--border-color)',
+                      fontSize: '0.85rem'
+                    }}>
+                      <div style={{ fontWeight: 600, marginBottom: '6px', color: '#6ee7b7' }}>🔍 Resolution Evidence:</div>
+                      <div style={{ color: 'var(--text-secondary)', marginBottom: '8px' }}>
+                        <strong>Officer Notes:</strong> &ldquo;{complaint.resolutionEvidence.description || 'No notes provided.'}&rdquo;
+                      </div>
+                      {complaint.resolutionEvidence.media && complaint.resolutionEvidence.media.length > 0 && (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '8px' }}>
+                          {complaint.resolutionEvidence.media.map((mediaItem: any, idx: number) => {
+                            const mediaUrl = mediaItem.url.startsWith('/') 
+                              ? `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}${mediaItem.url}`
+                              : mediaItem.url;
+                            return (
+                              <div key={idx} style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                <img 
+                                  src={mediaUrl} 
+                                  alt="Resolution evidence photo" 
+                                  style={{ maxWidth: '100%', maxHeight: '200px', objectFit: 'contain', borderRadius: '6px', border: '1px solid var(--border-color)' }} 
+                                />
+                                {mediaItem.metadata?.gpsLat && mediaItem.metadata?.gpsLng && (
+                                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                                    📍 GPS Location: {mediaItem.metadata.gpsLat.toFixed(6)}, {mediaItem.metadata.gpsLng.toFixed(6)}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
-                <div style={{ display: 'flex', gap: '8px' }} onClick={(e) => e.stopPropagation()}>
+                <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }} onClick={(e) => e.stopPropagation()}>
                   {complaint.status === 'provisionally_resolved' && (
                     <>
                       <button onClick={() => setShowConfirmModal(complaint._id)} className="btn btn-success" style={{ padding: '8px 14px', fontSize: '0.8rem' }}>✅ Confirm</button>

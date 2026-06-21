@@ -25,22 +25,33 @@ import { logger } from '../utils/logger';
 const redisConnection = {
   host: env.REDIS_HOST,
   port: env.REDIS_PORT,
-  password: env.REDIS_PASSWORD,
+  password: env.REDIS_PASSWORD || undefined,
   maxRetriesPerRequest: null as null, // Required by BullMQ
+  tls: (env.REDIS_HOST !== 'localhost' && env.REDIS_HOST !== '127.0.0.1') ? {} : undefined,
 };
 
 // ── Queue Instances ─────────────────────────────────────────
 
 export function createQueues() {
   try {
-    return {
+    const queues = {
       whatsappIncoming: new Queue('whatsapp-incoming', { connection: redisConnection }),
       whatsappMedia: new Queue('whatsapp-media', { connection: redisConnection }),
       whatsappNotify: new Queue('whatsapp-notify', { connection: redisConnection }),
       clustering: new Queue('clustering', { connection: redisConnection }),
       accountability: new Queue('accountability', { connection: redisConnection }),
       directiveCheck: new Queue('directive-check', { connection: redisConnection }),
+      sessionCleanup: new Queue('session-cleanup', { connection: redisConnection }),
     };
+
+    // Attach error listeners to prevent unhandled promise rejections / crashes
+    Object.entries(queues).forEach(([name, queue]) => {
+      queue.on('error', (err) => {
+        logger.warn(`[BullMQ] Queue "${name}" connection error: ${err.message}`);
+      });
+    });
+
+    return queues;
   } catch (err) {
     logger.warn('[BullMQ] Failed to create queues:', err);
     return null;
@@ -51,8 +62,10 @@ export function createQueues() {
 
 export function startWorkers() {
   try {
+    const workers = [];
+
     // 1. WhatsApp Incoming Message Processor
-    new Worker(
+    const wIncoming = new Worker(
       'whatsapp-incoming',
       async (job) => {
         const { from, message } = job.data;
@@ -61,9 +74,10 @@ export function startWorkers() {
       },
       { connection: redisConnection, concurrency: 5 },
     );
+    workers.push({ name: 'whatsapp-incoming', worker: wIncoming });
 
     // 2. WhatsApp Media Downloader
-    new Worker(
+    const wMedia = new Worker(
       'whatsapp-media',
       async (job) => {
         const { mediaId } = job.data;
@@ -75,9 +89,10 @@ export function startWorkers() {
       },
       { connection: redisConnection },
     );
+    workers.push({ name: 'whatsapp-media', worker: wMedia });
 
     // 3. WhatsApp Outbound Notifications
-    new Worker(
+    const wNotify = new Worker(
       'whatsapp-notify',
       async (job) => {
         const { to, body, type } = job.data;
@@ -86,9 +101,10 @@ export function startWorkers() {
       },
       { connection: redisConnection, concurrency: 10 },
     );
+    workers.push({ name: 'whatsapp-notify', worker: wNotify });
 
     // 4. Clustering Worker (scheduled via cron)
-    new Worker(
+    const wClustering = new Worker(
       'clustering',
       async () => {
         logger.info('[Worker:clustering] Running spatial clustering...');
@@ -97,9 +113,10 @@ export function startWorkers() {
       },
       { connection: redisConnection },
     );
+    workers.push({ name: 'clustering', worker: wClustering });
 
     // 5. Accountability Score Computation (scheduled via cron)
-    new Worker(
+    const wAccountability = new Worker(
       'accountability',
       async (job) => {
         const period = job.data?.period || 'weekly';
@@ -109,9 +126,10 @@ export function startWorkers() {
       },
       { connection: redisConnection },
     );
+    workers.push({ name: 'accountability', worker: wAccountability });
 
     // 6. Directive Overdue Checker (scheduled via cron)
-    new Worker(
+    const wDirectiveCheck = new Worker(
       'directive-check',
       async () => {
         logger.info('[Worker:directive-check] Checking overdue directives...');
@@ -120,6 +138,26 @@ export function startWorkers() {
       },
       { connection: redisConnection },
     );
+    workers.push({ name: 'directive-check', worker: wDirectiveCheck });
+
+    // 7. Session Cleanup Worker (scheduled via cron)
+    const wSessionCleanup = new Worker(
+      'session-cleanup',
+      async () => {
+        logger.info('[Worker:session-cleanup] Cleaning up stagnant WhatsApp sessions...');
+        const count = await WhatsAppService.cleanupStagnantSessions();
+        logger.info(`[Worker:session-cleanup] ${count} stagnant sessions closed`);
+      },
+      { connection: redisConnection },
+    );
+    workers.push({ name: 'session-cleanup', worker: wSessionCleanup });
+
+    // Attach error handlers to all workers to prevent crashes
+    workers.forEach(({ name, worker }) => {
+      worker.on('error', (err) => {
+        logger.warn(`[BullMQ] Worker "${name}" connection error: ${err.message}`);
+      });
+    });
 
     logger.info('[BullMQ] All workers started successfully');
   } catch (err) {
@@ -163,6 +201,16 @@ export async function scheduleRecurringJobs() {
     // Check overdue directives every hour
     await queues.directiveCheck.add(
       'overdue-check',
+      {},
+      {
+        repeat: { pattern: '0 * * * *' },
+        removeOnComplete: { count: 24 },
+      },
+    );
+
+    // Clean stagnant WhatsApp sessions hourly
+    await queues.sessionCleanup.add(
+      'cleanup',
       {},
       {
         repeat: { pattern: '0 * * * *' },

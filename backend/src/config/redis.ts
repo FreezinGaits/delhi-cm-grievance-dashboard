@@ -9,17 +9,23 @@ let redisClient: Redis | null = null;
  */
 export function getRedisClient(): Redis {
   if (!redisClient) {
-    redisClient = new Redis({
+    const redisOptions: any = {
       host: env.REDIS_HOST,
       port: env.REDIS_PORT,
-      password: env.REDIS_PASSWORD,
+      password: env.REDIS_PASSWORD || undefined,
       maxRetriesPerRequest: null, // required for BullMQ
       retryStrategy(times: number) {
         const delay = Math.min(times * 200, 5000);
         return delay;
       },
       lazyConnect: true,
-    });
+    };
+
+    if (env.REDIS_HOST !== 'localhost' && env.REDIS_HOST !== '127.0.0.1') {
+      redisOptions.tls = {};
+    }
+
+    redisClient = new Redis(redisOptions);
 
     redisClient.on('connect', () => {
       logger.info('✅ Redis connected successfully');

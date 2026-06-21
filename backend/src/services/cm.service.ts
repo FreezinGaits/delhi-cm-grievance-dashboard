@@ -89,6 +89,116 @@ export class CMService {
       { $sort: { _id: 1 } },
     ]);
 
+    // Compute real citizen satisfaction from feedback
+    const feedbackStats = await Complaint.aggregate([
+      { $match: { isDeleted: false, 'citizenFeedback.respondedAt': { $exists: true } } },
+      {
+        $group: {
+          _id: null,
+          totalResponses: { $sum: 1 },
+          confirmed: { $sum: { $cond: ['$citizenFeedback.isConfirmed', 1, 0] } },
+          avgRating: { $avg: { $ifNull: ['$citizenFeedback.rating', 3] } },
+        },
+      },
+    ]);
+    const fb = feedbackStats[0];
+    const citizenSatisfaction = fb && fb.totalResponses > 0
+      ? Math.round((fb.confirmed / fb.totalResponses) * 100 * 10) / 10
+      : 0;
+
+    // SLA analytics per department
+    const slaAnalytics = await Complaint.aggregate([
+      { $match: { isDeleted: false, assignedDepartment: { $exists: true } } },
+      {
+        $group: {
+          _id: '$assignedDepartment',
+          total: { $sum: 1 },
+          breached: { $sum: { $cond: ['$sla.breached', 1, 0] } },
+          resolved: { $sum: { $cond: [{ $in: ['$status', ['resolved', 'closed']] }, 1, 0] } },
+          avgResolutionMs: {
+            $avg: {
+              $cond: [
+                { $in: ['$status', ['resolved', 'closed']] },
+                { $subtract: ['$updatedAt', '$createdAt'] },
+                null,
+              ],
+            },
+          },
+        },
+      },
+    ]);
+
+    // Populate SLA department names
+    const slaDeptIds = slaAnalytics.map((s) => s._id);
+    const slaDepts = await Department.find({ _id: { $in: slaDeptIds } }).select('name code slaHours').lean();
+    const slaDeptMap = new Map(slaDepts.map((d) => [d._id.toString(), d]));
+
+    const slaReport = slaAnalytics.map((s) => {
+      const dept = slaDeptMap.get(s._id.toString());
+      const complianceRate = s.total > 0 ? Math.round(((s.total - s.breached) / s.total) * 100 * 10) / 10 : 100;
+      const avgHours = s.avgResolutionMs ? Math.round(s.avgResolutionMs / 3600000 * 10) / 10 : 0;
+      return {
+        department: dept ? { name: dept.name, code: dept.code } : { name: 'Unknown', code: 'UNK' },
+        slaTarget: (dept as any)?.slaHours ? `${(dept as any).slaHours} Hours` : '48 Hours',
+        total: s.total,
+        breached: s.breached,
+        complianceRate,
+        avgResolutionHours: avgHours,
+      };
+    });
+
+    const overallAvgResolution = slaReport.length > 0
+      ? Math.round(slaReport.reduce((sum, s) => sum + s.avgResolutionHours, 0) / slaReport.length * 10) / 10
+      : 0;
+    const overallCompliance = totalComplaints > 0
+      ? Math.round(((totalComplaints - slaBreaches) / totalComplaints) * 100 * 10) / 10
+      : 100;
+
+    // ── Calculate Delhi Happiness Index & Worst Performing Zones ──
+    const totalResolved = totalComplaints - openComplaints;
+    const overallResolutionRate = totalComplaints > 0
+      ? Math.round((totalResolved / totalComplaints) * 100 * 10) / 10
+      : 100;
+
+    const worstZonesRaw = await Complaint.aggregate([
+      { $match: { isDeleted: false, 'address.ward': { $exists: true, $ne: '' } } },
+      {
+        $group: {
+          _id: '$address.ward',
+          total: { $sum: 1 },
+          resolved: { $sum: { $cond: [{ $in: ['$status', ['resolved', 'closed']] }, 1, 0] } },
+          unresolved: { $sum: { $cond: [{ $in: ['$status', ['submitted', 'assigned', 'in_progress', 'escalated']] }, 1, 0] } },
+          slaBreaches: { $sum: { $cond: ['$sla.breached', 1, 0] } },
+        }
+      },
+      {
+        $project: {
+          zone: '$_id',
+          total: 1,
+          resolved: 1,
+          unresolved: 1,
+          slaBreaches: 1,
+          resolutionRate: {
+            $cond: [
+              { $gt: ['$total', 0] },
+              { $round: [{ $multiply: [{ $divide: ['$resolved', '$total'] }, 100] }, 1] },
+              0
+            ]
+          }
+        }
+      },
+      { $sort: { unresolved: -1, resolutionRate: 1 } },
+      { $limit: 3 }
+    ]);
+
+    const worstZones = worstZonesRaw.map(z => ({
+      zone: z.zone || 'Unknown Zone',
+      total: z.total,
+      unresolved: z.unresolved,
+      resolutionRate: z.resolutionRate,
+      slaBreaches: z.slaBreaches,
+    }));
+
     return {
       summary: {
         totalComplaints,
@@ -96,13 +206,25 @@ export class CMService {
         resolvedToday,
         criticalActive,
         slaBreaches,
-        citizenSatisfaction: 78.5, // computed from feedback in production
+        citizenSatisfaction,
       },
       statusBreakdown: Object.fromEntries(statusCounts.map((s: { _id: string; count: number }) => [s._id, s.count])),
       categoryBreakdown: categoryCounts,
       departmentPerformance,
       recentCritical,
       trendData,
+      slaReport,
+      slaOverview: {
+        avgResolutionHours: overallAvgResolution,
+        overallCompliance,
+        unresolvedBreaches: slaBreaches,
+      },
+      happinessIndex: {
+        score: overallResolutionRate,
+        target: 85,
+        rating: overallResolutionRate >= 85 ? 'Excellent' : overallResolutionRate >= 70 ? 'Satisfactory' : 'Critical',
+      },
+      worstZones,
     };
   }
 
@@ -125,6 +247,7 @@ export class CMService {
       .lean();
 
     return complaints.map((c) => ({
+      _id: c._id,
       lat: c.location.coordinates[1],
       lng: c.location.coordinates[0],
       category: c.category,
@@ -164,13 +287,12 @@ export class CMService {
   static async getOfficerLedger() {
     const officers = await User.find({
       role: { $in: [UserRole.OFFICER, UserRole.DEPARTMENT_HEAD] },
-      isActive: true,
     })
       .populate('departmentId', 'name code')
       .lean();
 
     const officerStats = await Promise.all(
-      officers.map(async (officer) => {
+      officers.map(async (officer: any) => {
         const activeCount = await Complaint.countDocuments({
           assignedOfficer: officer._id,
           status: { $in: ['assigned', 'in_progress'] },
@@ -185,13 +307,20 @@ export class CMService {
         const loadPercent = Math.round((activeCount / maxCapacity) * 100);
 
         return {
-          officer: { id: officer._id, name: `${officer.name.first} ${officer.name.last}`, ward: officer.ward },
+          officer: { 
+            id: officer._id, 
+            name: `${officer.name.first} ${officer.name.last}`, 
+            ward: officer.ward,
+            isSuspended: officer.isSuspended || false,
+            suspensionReason: officer.suspensionReason || null,
+            warnings: officer.warnings || []
+          },
           department: officer.departmentId,
           activeTickets: activeCount,
           resolvedTickets: resolvedCount,
           loadPercent,
-          status: loadPercent > 100 ? 'overloaded' : loadPercent > 75 ? 'busy' : 'available',
-          bandwidth: Math.max(0, 100 - loadPercent),
+          status: officer.isSuspended ? 'suspended' : loadPercent > 100 ? 'overloaded' : loadPercent > 75 ? 'busy' : 'available',
+          bandwidth: officer.isSuspended ? 0 : Math.max(0, 100 - loadPercent),
         };
       }),
     );

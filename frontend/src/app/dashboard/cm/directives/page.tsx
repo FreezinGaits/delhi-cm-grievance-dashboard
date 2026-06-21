@@ -48,6 +48,14 @@ const statusConfig: Record<string, { label: string; color: string; bg: string; b
   overdue: { label: 'OVERDUE', color: '#fca5a5', bg: 'rgba(239, 68, 68, 0.1)', border: 'rgba(239, 68, 68, 0.25)' },
 };
 
+const formatUserName = (nameObj: any) => {
+  if (!nameObj) return '';
+  if (typeof nameObj === 'object') {
+    return `${nameObj.first || ''} ${nameObj.last || ''}`.trim();
+  }
+  return nameObj;
+};
+
 export default function DirectivesPage() {
   const [directives, setDirectives] = useState<Directive[]>([]);
   const [stats, setStats] = useState<DirectiveStats | null>(null);
@@ -56,6 +64,9 @@ export default function DirectivesPage() {
   const [newDirective, setNewDirective] = useState({ complaintId: '', directive: '', priority: 'immediate' });
   const [issuing, setIssuing] = useState(false);
   const [statusFilter, setStatusFilter] = useState('all');
+  const [complaintsList, setComplaintsList] = useState<any[]>([]);
+  const [modalError, setModalError] = useState('');
+  const [isManualInput, setIsManualInput] = useState(false);
 
   const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : '';
   const headers = { 'Authorization': `Bearer ${token || ''}`, 'Content-Type': 'application/json' };
@@ -80,9 +91,31 @@ export default function DirectivesPage() {
 
   useEffect(() => { fetchData(); }, [fetchData]);
 
+  useEffect(() => {
+    if (showIssueModal) {
+      setModalError('');
+      setIsManualInput(false);
+      const fetchComplaints = async () => {
+        try {
+          const res = await fetch(`${API_BASE}/api/v1/complaints?limit=100`, {
+            headers: { 'Authorization': `Bearer ${token || ''}` }
+          });
+          const data = await res.json();
+          if (data.success) {
+            setComplaintsList(data.data || []);
+          }
+        } catch (err) {
+          console.error('Failed to fetch complaints for dropdown:', err);
+        }
+      };
+      fetchComplaints();
+    }
+  }, [showIssueModal, token]);
+
   const issueDirective = async () => {
     if (!newDirective.complaintId || !newDirective.directive) return;
     setIssuing(true);
+    setModalError('');
     try {
       const res = await fetch(`${API_BASE}/api/v1/directives`, {
         method: 'POST', headers,
@@ -93,9 +126,12 @@ export default function DirectivesPage() {
         setShowIssueModal(false);
         setNewDirective({ complaintId: '', directive: '', priority: 'immediate' });
         fetchData();
+      } else {
+        setModalError(data.error?.message || 'Failed to issue directive');
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to issue directive:', err);
+      setModalError(err.message || 'Connection error. Could not issue directive.');
     } finally {
       setIssuing(false);
     }
@@ -118,7 +154,7 @@ export default function DirectivesPage() {
     return (
       <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
         <div style={{ height: '40px', width: '300px' }} className="skeleton" />
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '12px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 120px), 1fr))', gap: '12px' }}>
           {[1,2,3,4,5,6].map(i => <div key={i} style={{ height: '80px' }} className="skeleton" />)}
         </div>
         <div style={{ height: '400px' }} className="skeleton" />
@@ -129,19 +165,19 @@ export default function DirectivesPage() {
   return (
     <div className="animate-fade-in">
       {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-        <div>
-          <h1 style={{ fontSize: '1.75rem', fontWeight: 800, marginBottom: '4px' }}>📋 CM Spot Directives</h1>
-          <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>Issue and track field directives with deadline enforcement</p>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '24px', flexWrap: 'wrap', gap: '12px' }}>
+        <div style={{ minWidth: 0 }}>
+          <h1 style={{ fontSize: 'clamp(1.25rem, 3vw, 1.75rem)', fontWeight: 800, marginBottom: '4px' }}>📋 CM Spot Directives</h1>
+          <p style={{ color: 'var(--text-muted)', fontSize: 'clamp(0.75rem, 1.5vw, 0.9rem)' }}>Issue and track field directives with deadline enforcement</p>
         </div>
-        <button onClick={() => setShowIssueModal(true)} className="btn btn-primary" style={{ gap: '6px' }}>
+        <button onClick={() => setShowIssueModal(true)} className="btn btn-primary" style={{ gap: '6px', flexShrink: 0 }}>
           ⚡ Issue Directive
         </button>
       </div>
 
       {/* Stats Cards */}
       {stats && (
-        <div className="stagger-children" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '12px', marginBottom: '24px' }}>
+        <div className="stagger-children" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 120px), 1fr))', gap: '12px', marginBottom: '24px' }}>
           <StatMini label="Total" value={stats.total} icon="📋" />
           <StatMini label="Awaiting" value={stats.created} icon="⏳" color="#fbbf24" />
           <StatMini label="Acknowledged" value={stats.acknowledged} icon="✋" color="#93c5fd" />
@@ -179,7 +215,7 @@ export default function DirectivesPage() {
                 padding: '20px', borderLeft: `3px solid ${sConf.color}`,
                 ...(d.status === 'overdue' ? { animation: 'pulse-glow 2s ease-in-out infinite' } : {}),
               }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px', flexWrap: 'wrap', gap: '12px' }}>
                   <div style={{ flex: 1 }}>
                     <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '8px', flexWrap: 'wrap' }}>
                       <span style={{ padding: '3px 10px', borderRadius: '999px', fontSize: '0.7rem', fontWeight: 700, color: sConf.color, background: sConf.bg, border: `1px solid ${sConf.border}` }}>
@@ -214,12 +250,12 @@ export default function DirectivesPage() {
                     </div>
                   </div>
                 </div>
-                <div style={{ display: 'flex', gap: '20px', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                  <span>👮 {d.assignedOfficer?.name || 'Unassigned'}</span>
+                <div style={{ display: 'flex', gap: '12px', fontSize: '0.8rem', color: 'var(--text-muted)', flexWrap: 'wrap' }}>
+                  <span>👮 {formatUserName(d.assignedOfficer?.name) || 'Unassigned'}</span>
                   <span>🏢 {d.assignedDepartment?.name || d.assignedDepartment?.code || 'N/A'}</span>
                   <span>📍 {d.complaintId?.address?.ward || 'Delhi'}</span>
                   <span>🕐 Issued: {new Date(d.createdAt).toLocaleDateString('en-IN')}</span>
-                  {d.issuedBy?.name && <span>👤 By: {d.issuedBy.name}</span>}
+                  {d.issuedBy?.name && <span>👤 By: {formatUserName(d.issuedBy.name)}</span>}
                 </div>
                 {d.completionNotes && (
                   <div style={{ marginTop: '12px', padding: '10px 14px', borderRadius: '8px', background: 'rgba(16, 185, 129, 0.05)', border: '1px solid rgba(16, 185, 129, 0.15)', fontSize: '0.85rem', color: '#6ee7b7' }}>
@@ -242,22 +278,70 @@ export default function DirectivesPage() {
             onClick={e => e.stopPropagation()}>
             <h2 style={{ fontSize: '1.3rem', fontWeight: 800, marginBottom: '20px' }}>⚡ Issue Spot Directive</h2>
 
+            {modalError && (
+              <div style={{
+                padding: '10px 14px', borderRadius: '8px', marginBottom: '16px',
+                background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.2)',
+                color: '#fca5a5', fontSize: '0.8rem',
+              }}>
+                ⚠️ {modalError}
+              </div>
+            )}
+
             <div style={{ marginBottom: '16px' }}>
-              <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, marginBottom: '6px', color: 'var(--text-secondary)' }}>Complaint ID</label>
-              <input className="input" placeholder="Paste complaint ObjectId..."
-                value={newDirective.complaintId}
-                onChange={e => setNewDirective({ ...newDirective, complaintId: e.target.value })} />
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                <label style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Complaint Selection</label>
+                <button 
+                  type="button" 
+                  onClick={() => {
+                    setIsManualInput(!isManualInput);
+                    setNewDirective({ ...newDirective, complaintId: '' });
+                  }}
+                  style={{
+                    background: 'transparent', border: 'none', color: '#93c5fd', fontSize: '0.75rem', cursor: 'pointer', fontWeight: 600
+                  }}>
+                  {isManualInput ? '📋 Select from List' : '✍️ Enter ID Manually'}
+                </button>
+              </div>
+
+              {isManualInput ? (
+                <input className="input" placeholder="Paste 24-character complaint ObjectId..."
+                  value={newDirective.complaintId}
+                  onChange={e => setNewDirective({ ...newDirective, complaintId: e.target.value })} />
+              ) : (
+                <select 
+                  value={newDirective.complaintId}
+                  onChange={e => setNewDirective({ ...newDirective, complaintId: e.target.value })}
+                  style={{
+                    width: '100%',
+                    background: 'var(--bg-secondary)',
+                    color: 'var(--text-primary)',
+                    border: '1px solid var(--border-color)',
+                    borderRadius: '8px',
+                    padding: '10px',
+                    fontSize: '0.85rem',
+                    outline: 'none',
+                    cursor: 'pointer'
+                  }}>
+                  <option value="">-- Choose a Complaint --</option>
+                  {complaintsList.map((c: any) => (
+                    <option key={c._id} value={c._id}>
+                      {c.referenceNumber} - {c.title.substring(0, 35)}{c.title.length > 35 ? '...' : ''} ({c.assignedDepartment?.code || 'UNASSIGNED'})
+                    </option>
+                  ))}
+                </select>
+              )}
             </div>
 
             <div style={{ marginBottom: '16px' }}>
-              <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, marginBottom: '6px', color: 'var(--text-secondary)' }}>Directive</label>
-              <textarea className="input" rows={3} placeholder="CM directive text..."
+              <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, marginBottom: '6px', color: 'var(--text-secondary)' }}>Directive Instruction</label>
+              <textarea className="input" rows={3} placeholder="Provide specific directives (e.g. Clean the drainage outlet immediately)..."
                 value={newDirective.directive} style={{ resize: 'vertical' }}
                 onChange={e => setNewDirective({ ...newDirective, directive: e.target.value })} />
             </div>
 
             <div style={{ marginBottom: '24px' }}>
-              <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, marginBottom: '6px', color: 'var(--text-secondary)' }}>Priority</label>
+              <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: 600, marginBottom: '6px', color: 'var(--text-secondary)' }}>Priority / Deadline</label>
               <div style={{ display: 'flex', gap: '8px' }}>
                 {(['immediate', 'within_24h', 'within_week'] as const).map(p => {
                   const pc = priorityConfig[p];

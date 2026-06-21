@@ -5,6 +5,31 @@ import { authorize, OFFICER_ACCESS, ALL_STAFF } from '../middleware/rbac.middlew
 import { Complaint, ComplaintStatus } from '../models/Complaint';
 import { ComplaintHistory, HistoryAction } from '../models/ComplaintHistory';
 import { ApiError } from '../middleware/error.middleware';
+import multer from 'multer';
+import path from 'path';
+import fs from 'fs';
+import { v4 as uuidv4 } from 'uuid';
+import { logger } from '../utils/logger';
+
+// Configure Multer storage for resolution evidence
+const storage = multer.diskStorage({
+  destination: (_req, _file, cb) => cb(null, path.join(__dirname, '../../uploads')),
+  filename: (_req, file, cb) => {
+    const ext = path.extname(file.originalname);
+    cb(null, `evidence-${uuidv4()}${ext}`);
+  },
+});
+
+const upload = multer({
+  storage,
+  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB limit
+  fileFilter: (_req, file, cb) => {
+    const allowed = /jpeg|jpg|png|gif|webp/;
+    const ext = allowed.test(path.extname(file.originalname).toLowerCase());
+    const mime = allowed.test(file.mimetype);
+    cb(null, ext && mime);
+  },
+});
 
 const router = Router();
 
@@ -90,34 +115,73 @@ router.patch('/complaints/:id/accept', authenticate, authorize(...OFFICER_ACCESS
   } catch (error) { next(error); }
 });
 
-/**
- * POST /officers/complaints/:id/evidence — upload resolution evidence
- */
-router.post('/complaints/:id/evidence', authenticate, authorize(...OFFICER_ACCESS), async (req: AuthRequest, res: Response, next: NextFunction) => {
+router.post('/complaints/:id/evidence', authenticate, authorize(...OFFICER_ACCESS), upload.single('evidenceImage'), async (req: AuthRequest, res: Response, next: NextFunction) => {
   try {
     if (!req.user?.id) throw ApiError.unauthorized();
-    const { description, gpsLat, gpsLng } = req.body;
+    const { description } = req.body;
+    let gpsLat = req.body.gpsLat ? parseFloat(req.body.gpsLat) : undefined;
+    let gpsLng = req.body.gpsLng ? parseFloat(req.body.gpsLng) : undefined;
 
     const complaint = await Complaint.findById(req.params.id);
     if (!complaint) throw ApiError.notFound('Complaint not found');
 
-    // GPS validation — must be within 50m of complaint location
-    if (gpsLat && gpsLng) {
-      const complaintLat = complaint.location.coordinates[1];
-      const complaintLng = complaint.location.coordinates[0];
-      const distance = getDistanceMeters(parseFloat(gpsLat), parseFloat(gpsLng), complaintLat, complaintLng);
+    // EXIF Metadata Extraction if file is uploaded
+    let uploadedMediaUrl = '';
+    if (!req.file) {
+      throw ApiError.badRequest('Resolution evidence photo is required.');
+    }
 
-      if (distance > 50) {
-        throw ApiError.badRequest(
-          `Photo GPS is ${Math.round(distance)}m from complaint location. Must be within 50m. Compliance violation flagged.`,
-        );
+    uploadedMediaUrl = `/uploads/${req.file.filename}`;
+    
+    try {
+      const fileBuffer = fs.readFileSync(req.file.path);
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      const parser = require('exif-parser').create(fileBuffer);
+      const result = parser.parse();
+      
+      if (result.tags && result.tags.GPSLatitude && result.tags.GPSLongitude) {
+        gpsLat = result.tags.GPSLatitude;
+        gpsLng = result.tags.GPSLongitude;
+        logger.info(`Extracted GPS coordinates from image EXIF: Lat ${gpsLat}, Lng ${gpsLng}`);
+      } else {
+        try { fs.unlinkSync(req.file.path); } catch (err) {}
+        throw ApiError.badRequest('The uploaded photo does not contain embedded GPS location tags (EXIF data). Please upload a photo captured with location/GPS services enabled on-site.');
       }
+    } catch (exifError: any) {
+      if (exifError.status === 400) throw exifError;
+      logger.warn('Failed to parse EXIF metadata from uploaded image:', exifError);
+      try { fs.unlinkSync(req.file.path); } catch (err) {}
+      throw ApiError.badRequest('Failed to read image location metadata (EXIF). Please upload a valid photo (JPEG/PNG) containing GPS location tags.');
+    }
+
+    // GPS validation — must be within 50m of complaint location
+    if (!gpsLat || !gpsLng) {
+      try { fs.unlinkSync(req.file.path); } catch (err) {}
+      throw ApiError.badRequest('No GPS location data could be retrieved from the uploaded photo.');
+    }
+
+    const complaintLat = complaint.location.coordinates[1];
+    const complaintLng = complaint.location.coordinates[0];
+    const distance = getDistanceMeters(gpsLat, gpsLng, complaintLat, complaintLng);
+
+    if (distance > 50) {
+      try { fs.unlinkSync(req.file.path); } catch (err) {}
+      throw ApiError.badRequest(
+        `Photo GPS is ${Math.round(distance)}m from complaint location. Resolution photo must be captured on-site (within 50m) to confirm compliance.`,
+      );
     }
 
     complaint.status = ComplaintStatus.PROVISIONALLY_RESOLVED;
     complaint.resolutionEvidence = {
       description: description || '',
-      media: [],
+      media: uploadedMediaUrl ? [{
+        url: uploadedMediaUrl,
+        metadata: (gpsLat && gpsLng) ? {
+          gpsLat,
+          gpsLng,
+          timestamp: new Date(),
+        } : undefined,
+      }] : [],
       resolvedAt: new Date(),
       resolvedBy: req.user.id as any,
     };
@@ -136,7 +200,12 @@ router.post('/complaints/:id/evidence', authenticate, authorize(...OFFICER_ACCES
       success: true,
       data: { message: 'Evidence submitted. Complaint marked as Provisionally Resolved. Awaiting citizen confirmation.' },
     });
-  } catch (error) { next(error); }
+  } catch (error) {
+    if (req.file) {
+      try { fs.unlinkSync(req.file.path); } catch (err) {}
+    }
+    next(error);
+  }
 });
 
 /**

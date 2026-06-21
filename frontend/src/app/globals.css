@@ -39,6 +39,10 @@
   --gradient-success: linear-gradient(135deg, #10b981 0%, #059669 100%);
   --gradient-danger: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
   --gradient-card: linear-gradient(145deg, rgba(30, 64, 175, 0.08), rgba(59, 130, 246, 0.04));
+
+  /* Sidebar dimensions */
+  --sidebar-width: 260px;
+  --sidebar-collapsed: 72px;
 }
 
 * {
@@ -49,6 +53,7 @@
 
 html {
   scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
 }
 
 body {
@@ -58,6 +63,7 @@ body {
   min-height: 100vh;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
 }
 
 /* Scrollbar styling */
@@ -66,7 +72,7 @@ body {
 ::-webkit-scrollbar-thumb { background: var(--border-light); border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
 
-/* Glass card */
+/* ── Glass card ────────────────────────────────────────────── */
 .glass-card {
   background: var(--glass-bg);
   backdrop-filter: blur(20px);
@@ -76,7 +82,7 @@ body {
   box-shadow: var(--glass-shadow);
 }
 
-/* Stat card with gradient border */
+/* ── Stat card with gradient border ────────────────────────── */
 .stat-card {
   position: relative;
   background: var(--bg-card);
@@ -108,7 +114,7 @@ body {
 .stat-card.success::before { background: var(--gradient-success); }
 .stat-card.warning::before { background: var(--gradient-accent); }
 
-/* Pulse animation for critical alerts */
+/* ── Pulse animation for critical alerts ────────────────── */
 @keyframes pulse-glow {
   0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
   50% { box-shadow: 0 0 20px 10px rgba(239, 68, 68, 0.1); }
@@ -118,7 +124,7 @@ body {
   animation: pulse-glow 2s ease-in-out infinite;
 }
 
-/* Shimmer loading effect */
+/* ── Shimmer loading effect ─────────────────────────────── */
 @keyframes shimmer {
   0% { background-position: -200% 0; }
   100% { background-position: 200% 0; }
@@ -131,7 +137,7 @@ body {
   border-radius: 8px;
 }
 
-/* Badge styles */
+/* ── Badge styles ────────────────────────────────────────── */
 .badge {
   display: inline-flex;
   align-items: center;
@@ -140,6 +146,7 @@ body {
   font-size: 0.75rem;
   font-weight: 600;
   letter-spacing: 0.025em;
+  white-space: nowrap;
 }
 
 .badge-critical { background: rgba(239, 68, 68, 0.15); color: #fca5a5; border: 1px solid rgba(239, 68, 68, 0.3); }
@@ -154,7 +161,7 @@ body {
 .badge-rejected { background: rgba(239, 68, 68, 0.15); color: #fca5a5; }
 .badge-escalated { background: rgba(168, 85, 247, 0.15); color: #c4b5fd; }
 
-/* Button styles */
+/* ── Button styles ───────────────────────────────────────── */
 .btn {
   display: inline-flex;
   align-items: center;
@@ -168,6 +175,7 @@ body {
   cursor: pointer;
   border: none;
   outline: none;
+  white-space: nowrap;
 }
 
 .btn-primary {
@@ -181,7 +189,7 @@ body {
 .btn-ghost { background: transparent; color: var(--text-secondary); border: 1px solid var(--border-color); }
 .btn-ghost:hover { background: var(--bg-elevated); color: var(--text-primary); }
 
-/* Input styles */
+/* ── Input styles ────────────────────────────────────────── */
 .input {
   width: 100%;
   padding: 0.75rem 1rem;
@@ -199,7 +207,7 @@ body {
 }
 .input::placeholder { color: var(--text-muted); }
 
-/* Fade in animation */
+/* ── Fade in animation ───────────────────────────────────── */
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: translateY(0); }
@@ -208,7 +216,7 @@ body {
   animation: fadeIn 0.5s ease-out forwards;
 }
 
-/* Stagger children animation */
+/* ── Stagger children animation ──────────────────────────── */
 .stagger-children > * {
   opacity: 0;
   animation: fadeIn 0.4s ease-out forwards;
@@ -219,3 +227,194 @@ body {
 .stagger-children > *:nth-child(4) { animation-delay: 0.2s; }
 .stagger-children > *:nth-child(5) { animation-delay: 0.25s; }
 .stagger-children > *:nth-child(6) { animation-delay: 0.3s; }
+
+/* ── Leaflet Map Overrides ───────────────────────────────── */
+.leaflet-container {
+  background: #0a0e1a !important;
+  font-family: 'Inter', sans-serif !important;
+}
+
+/* Dark popup theme */
+.dark-popup .leaflet-popup-content-wrapper {
+  background: rgba(15, 23, 42, 0.95) !important;
+  border: 1px solid rgba(59, 130, 246, 0.2) !important;
+  border-radius: 12px !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5) !important;
+  color: #e2e8f0 !important;
+}
+
+.dark-popup .leaflet-popup-tip {
+  background: rgba(15, 23, 42, 0.95) !important;
+  border: 1px solid rgba(59, 130, 246, 0.2) !important;
+}
+
+.dark-popup .leaflet-popup-close-button {
+  color: #94a3b8 !important;
+  font-size: 18px !important;
+}
+
+.dark-popup .leaflet-popup-close-button:hover {
+  color: #f1f5f9 !important;
+}
+
+.leaflet-control-zoom a {
+  background: rgba(15, 23, 42, 0.9) !important;
+  color: #e2e8f0 !important;
+  border-color: rgba(59, 130, 246, 0.2) !important;
+}
+
+.leaflet-control-zoom a:hover {
+  background: rgba(30, 64, 175, 0.9) !important;
+}
+
+.leaflet-control-attribution {
+  background: rgba(15, 23, 42, 0.7) !important;
+  color: #64748b !important;
+  font-size: 10px !important;
+}
+
+.leaflet-control-attribution a {
+  color: #3b82f6 !important;
+}
+
+/* Custom marker reset */
+.custom-marker, .nearby-marker, .cm-marker {
+  background: none !important;
+  border: none !important;
+}
+
+/* Critical pulse animation for map markers */
+@keyframes criticalPulseMap {
+  0% { box-shadow: 0 0 8px #ef4444; }
+  50% { box-shadow: 0 0 24px #ef4444, 0 0 40px rgba(239, 68, 68, 0.3); }
+  100% { box-shadow: 0 0 8px #ef4444; }
+}
+
+.critical-pulse {
+  animation: criticalPulseMap 1.5s ease-in-out infinite;
+}
+
+/* ════════════════════════════════════════════════════════════
+   RESPONSIVE DESIGN SYSTEM
+   ════════════════════════════════════════════════════════════ */
+
+/* ── Mobile overlay backdrop ─────────────────────────────── */
+.sidebar-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  z-index: 39;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+.sidebar-overlay.active {
+  display: block;
+  opacity: 1;
+}
+
+/* ── Mobile hamburger button ─────────────────────────────── */
+.mobile-menu-btn {
+  display: none;
+  position: fixed;
+  top: 16px;
+  left: 16px;
+  z-index: 50;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  border: 1px solid var(--border-color);
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  font-size: 1.2rem;
+  cursor: pointer;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  transition: background 0.2s;
+}
+.mobile-menu-btn:hover {
+  background: var(--bg-elevated);
+}
+
+/* ── Tables: horizontal scroll wrapper ───────────────────── */
+.table-wrap {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  margin: 0 -4px;
+  padding: 0 4px;
+}
+.table-wrap table {
+  min-width: 600px;
+}
+
+/* ── Responsive grid helpers ─────────────────────────────── */
+.grid-responsive {
+  display: grid;
+  gap: 16px;
+}
+
+/* ═══════════════════════════════════════════════════════════
+   BREAKPOINTS
+   ═══════════════════════════════════════════════════════════ */
+
+/* ── Tablet (≤ 1024px) ───────────────────────────────────── */
+@media (max-width: 1024px) {
+  .stat-card {
+    padding: 1.25rem;
+  }
+  .stat-card:hover {
+    transform: none;
+  }
+}
+
+/* ── Mobile (≤ 768px) ────────────────────────────────────── */
+@media (max-width: 768px) {
+  .mobile-menu-btn {
+    display: flex;
+  }
+
+  .glass-card {
+    border-radius: 12px;
+  }
+
+  .stat-card {
+    padding: 1rem;
+    border-radius: 12px;
+  }
+
+  .btn {
+    padding: 0.5rem 1rem;
+    font-size: 0.8rem;
+  }
+
+  .input {
+    padding: 0.625rem 0.875rem;
+    font-size: 0.8rem;
+  }
+
+  .badge {
+    padding: 0.2rem 0.5rem;
+    font-size: 0.65rem;
+  }
+
+  /* Prevent text overflow on small screens */
+  h1 { font-size: 1.4rem !important; }
+  h2 { font-size: 1.25rem !important; }
+  h3 { font-size: 1rem !important; }
+}
+
+/* ── Small mobile (≤ 480px) ──────────────────────────────── */
+@media (max-width: 480px) {
+  .glass-card {
+    border-radius: 10px;
+    padding: 16px !important;
+  }
+
+  .stat-card {
+    padding: 0.875rem;
+    border-radius: 10px;
+  }
+}

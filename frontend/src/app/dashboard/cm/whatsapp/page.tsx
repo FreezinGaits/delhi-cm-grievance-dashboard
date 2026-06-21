@@ -119,15 +119,15 @@ export default function WhatsAppAdminPage() {
   return (
     <div className="animate-fade-in">
       {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '24px', flexWrap: 'wrap', gap: '12px' }}>
         <div>
-          <h1 style={{ fontSize: '1.75rem', fontWeight: 800, marginBottom: '4px' }}>📱 WhatsApp Intake Monitor</h1>
-          <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>Active sessions, message history, and test console</p>
+          <h1 style={{ fontSize: 'clamp(1.25rem, 3vw, 1.75rem)', fontWeight: 800, marginBottom: '4px' }}>📱 WhatsApp Intake Monitor</h1>
+          <p style={{ color: 'var(--text-muted)', fontSize: 'clamp(0.75rem, 1.5vw, 0.9rem)' }}>Active sessions, message history, and test console</p>
         </div>
-        <button onClick={fetchSessions} className="btn btn-ghost">🔄 Refresh</button>
+        <button onClick={fetchSessions} className="btn btn-ghost" style={{ flexShrink: 0 }}>🔄 Refresh</button>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 360px), 1fr))', gap: '20px' }}>
         {/* Left: Sessions + Test Console */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           {/* Test Console */}
@@ -136,15 +136,15 @@ export default function WhatsAppAdminPage() {
             <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '12px' }}>
               Simulate WhatsApp messages without Meta API. Try sending &ldquo;Hi&rdquo; to start a conversation.
             </p>
-            <div style={{ display: 'flex', gap: '8px', marginBottom: '10px' }}>
+            <div style={{ display: 'flex', gap: '8px', marginBottom: '10px', flexWrap: 'wrap' }}>
               <input className="input" placeholder="Phone number"
                 value={testPhone} onChange={e => setTestPhone(e.target.value)}
-                style={{ maxWidth: '160px' }} />
+                style={{ flex: '1 1 120px', maxWidth: '100%' }} />
               <input className="input" placeholder="Message text (e.g. Hi)"
                 value={testMessage} onChange={e => setTestMessage(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && sendTestMessage()} style={{ flex: 1 }} />
+                onKeyDown={e => e.key === 'Enter' && sendTestMessage()} style={{ flex: '2 1 200px' }} />
               <button onClick={sendTestMessage} className="btn btn-primary" disabled={sending}
-                style={{ whiteSpace: 'nowrap' }}>
+                style={{ whiteSpace: 'nowrap', flex: '1 1 auto' }}>
                 {sending ? '⏳' : '📤 Send'}
               </button>
             </div>

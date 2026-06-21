@@ -19,7 +19,9 @@ export interface AuthRequest extends Request {
  * JWT Authentication middleware
  * Verifies the Bearer token from Authorization header
  */
-export function authenticate(req: AuthRequest, _res: Response, next: NextFunction): void {
+import { User } from '../models/User';
+
+export async function authenticate(req: AuthRequest, _res: Response, next: NextFunction): Promise<void> {
   try {
     const authHeader = req.headers.authorization;
 
@@ -33,6 +35,14 @@ export function authenticate(req: AuthRequest, _res: Response, next: NextFunctio
     }
 
     const payload = AuthService.verifyAccessToken(token);
+    
+    // JWT Expiration vs. Deactivation Window Fix
+    // Query DB to ensure user is still active
+    const userInDb = await User.findById(payload.id).select('isActive');
+    if (!userInDb || !userInDb.isActive) {
+      throw ApiError.forbidden('Account has been deactivated');
+    }
+
     req.user = payload;
 
     next();

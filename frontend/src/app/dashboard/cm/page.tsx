@@ -2,6 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import { usePathname } from 'next/navigation';
+import dynamic from 'next/dynamic';
+
+const LiveMap = dynamic(() => import('../../components/LiveMap'), { ssr: false, loading: () => <div className="skeleton" style={{ height: '520px' }} /> });
 
 // Format time ago for alerts
 function formatTimeAgo(dateStr: string) {
@@ -14,6 +17,15 @@ function formatTimeAgo(dateStr: string) {
   if (hours < 24) return `${hours} hr${hours > 1 ? 's' : ''} ago`;
   const days = Math.floor(hours / 24);
   return `${days} day${days > 1 ? 's' : ''} ago`;
+}
+
+function formatUserName(name: any) {
+  if (!name) return 'Unassigned';
+  if (typeof name === 'string') return name;
+  if (name.first || name.last) {
+    return `${name.first || ''} ${name.last || ''}`.trim();
+  }
+  return 'Unknown';
 }
 
 export default function CMDashboard() {
@@ -30,10 +42,14 @@ export default function CMDashboard() {
 
   // Tab-specific states
   const [allComplaints, setAllComplaints] = useState<any[]>([]);
+  const [selectedComplaint, setSelectedComplaint] = useState<any | null>(null);
   const [complaintsLoading, setComplaintsLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [categoryFilter, setCategoryFilter] = useState('all');
+  const [officerLedger, setOfficerLedger] = useState<any[]>([]);
+  const [officerLoading, setOfficerLoading] = useState(false);
+  const [slaData, setSlaData] = useState<any>(null);
 
   const fetchDashboardData = async () => {
     try {
@@ -88,10 +104,88 @@ export default function CMDashboard() {
     return () => clearInterval(interval);
   }, []);
 
-  useEffect(() => {
-    if (activeTab === 'complaints') {
-      fetchAllComplaints();
+  const fetchOfficerLedger = async () => {
+    try {
+      setOfficerLoading(true);
+      const token = localStorage.getItem('accessToken');
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/v1/cm/officer-ledger`, {
+        headers: { 'Authorization': `Bearer ${token || ''}` },
+      });
+      const resData = await res.json();
+      if (resData.success) setOfficerLedger(resData.data || []);
+    } catch (err) {
+      console.error('Failed to fetch officer ledger:', err);
+    } finally {
+      setOfficerLoading(false);
     }
+  };
+
+  const handleIssueWarning = async (officerId: string) => {
+    const reason = prompt("Enter the reason for issuing a disciplinary warning to this officer:");
+    if (!reason) return;
+    
+    try {
+      const token = localStorage.getItem('accessToken');
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/v1/cm/officers/${officerId}/warning`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token || ''}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ reason })
+      });
+      const resData = await res.json();
+      if (resData.success) {
+        alert("Disciplinary warning issued successfully.");
+        fetchOfficerLedger();
+      } else {
+        alert("Error: " + (resData.error?.message || "Failed to issue warning."));
+      }
+    } catch (err: any) {
+      console.error(err);
+      alert("Error: " + err.message);
+    }
+  };
+
+  const handleToggleSuspend = async (officerId: string, isCurrentlySuspended: boolean) => {
+    let reason = '';
+    if (!isCurrentlySuspended) {
+      reason = prompt("Enter the reason for suspending this officer:") || '';
+      if (!reason) {
+        alert("Suspension cancelled. A reason is required.");
+        return;
+      }
+    } else {
+      const confirmAction = confirm(`Are you sure you want to unsuspend this officer?`);
+      if (!confirmAction) return;
+    }
+
+    try {
+      const token = localStorage.getItem('accessToken');
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}/api/v1/cm/officers/${officerId}/suspend`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token || ''}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ suspend: !isCurrentlySuspended, reason })
+      });
+      const resData = await res.json();
+      if (resData.success) {
+        alert(`Officer ${isCurrentlySuspended ? 'unsuspended' : 'suspended'} successfully.`);
+        fetchOfficerLedger();
+      } else {
+        alert("Error: " + (resData.error?.message || `Failed to modify officer status.`));
+      }
+    } catch (err: any) {
+      console.error(err);
+      alert("Error: " + err.message);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === 'complaints') fetchAllComplaints();
+    if (activeTab === 'officers') fetchOfficerLedger();
   }, [activeTab]);
 
   if (loading && !dashboardData) {
@@ -144,17 +238,17 @@ export default function CMDashboard() {
   return (
     <div className="animate-fade-in">
       {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '28px' }}>
-        <div>
-          <h1 style={{ fontSize: '1.75rem', fontWeight: 800, marginBottom: '4px', textTransform: 'capitalize' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '24px', flexWrap: 'wrap', gap: '12px' }}>
+        <div style={{ minWidth: 0 }}>
+          <h1 style={{ fontSize: 'clamp(1.25rem, 3vw, 1.75rem)', fontWeight: 800, marginBottom: '4px', textTransform: 'capitalize' }}>
             {activeTab === 'overview' ? 'Command Center' : `${activeTab} View`}
           </h1>
-          <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>
+          <p style={{ color: 'var(--text-muted)', fontSize: 'clamp(0.75rem, 1.5vw, 0.9rem)' }}>
             Real-time governance intelligence • Last updated: {new Date().toLocaleTimeString('en-IN')}
           </p>
         </div>
-        <div style={{ display: 'flex', gap: '8px' }}>
-          <button onClick={() => { fetchDashboardData(); if (activeTab === 'complaints') fetchAllComplaints(); }} className="btn btn-ghost" style={{ padding: '8px 16px', fontSize: '0.8rem' }}>
+        <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
+          <button onClick={() => { fetchDashboardData(); if (activeTab === 'complaints') fetchAllComplaints(); }} className="btn btn-ghost" style={{ padding: '8px 14px', fontSize: '0.8rem' }}>
             🔄 Refresh
           </button>
         </div>
@@ -174,7 +268,7 @@ export default function CMDashboard() {
       {activeTab === 'overview' && (
         <>
           {/* KPI Cards */}
-          <div className="stagger-children" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '16px', marginBottom: '28px' }}>
+          <div className="stagger-children" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 155px), 1fr))', gap: '12px', marginBottom: '24px' }}>
             <StatCard label="Total Complaints" value={summary.totalComplaints.toLocaleString()} icon="📊" />
             <StatCard label="Open / Active" value={summary.openComplaints.toLocaleString()} icon="📂" variant="warning" />
             <StatCard label="Resolved Today" value={summary.resolvedToday.toString()} icon="✅" variant="success" />
@@ -183,8 +277,96 @@ export default function CMDashboard() {
             <StatCard label="Satisfaction" value={`${summary.citizenSatisfaction}%`} icon="😊" variant="success" />
           </div>
 
+          {/* Delhi Happiness Index & Worst Performing Zones */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 300px), 1fr))', gap: '16px', marginBottom: '24px' }}>
+            {/* Happiness Index Card */}
+            <div className="glass-card" style={{ padding: '24px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', minHeight: '180px' }}>
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                  <h3 style={{ fontSize: '1rem', fontWeight: 700, margin: 0 }}>🎯 Delhi Happiness Index</h3>
+                  <span style={{
+                    padding: '2px 8px', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 700,
+                    background: (dashboardData?.happinessIndex?.rating === 'Excellent' ? 'rgba(16, 185, 129, 0.15)' : dashboardData?.happinessIndex?.rating === 'Satisfactory' ? 'rgba(245, 158, 11, 0.15)' : 'rgba(239, 68, 68, 0.15)'),
+                    color: (dashboardData?.happinessIndex?.rating === 'Excellent' ? '#6ee7b7' : dashboardData?.happinessIndex?.rating === 'Satisfactory' ? '#fbbf24' : '#fca5a5')
+                  }}>
+                    {dashboardData?.happinessIndex?.rating || 'Calculating...'}
+                  </span>
+                </div>
+                <p style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', marginBottom: '16px' }}>
+                  Overall grievance resolution rate vs. target of {dashboardData?.happinessIndex?.target || 85}%.
+                </p>
+              </div>
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '6px' }}>
+                  <span style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--text-primary)' }}>
+                    {dashboardData?.happinessIndex?.score || 0}%
+                  </span>
+                  <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                    Target: {dashboardData?.happinessIndex?.target || 85}%
+                  </span>
+                </div>
+                <div style={{ height: '8px', background: 'var(--bg-secondary)', borderRadius: '4px', overflow: 'hidden', position: 'relative' }}>
+                  <div style={{
+                    height: '100%',
+                    width: `${Math.min(dashboardData?.happinessIndex?.score || 0, 100)}%`,
+                    background: 'var(--gradient-success)',
+                    borderRadius: '4px',
+                    transition: 'width 1s ease'
+                  }} />
+                  <div style={{
+                    position: 'absolute',
+                    top: 0,
+                    bottom: 0,
+                    left: `${dashboardData?.happinessIndex?.target || 85}%`,
+                    width: '2px',
+                    background: '#ef4444',
+                    opacity: 0.8
+                  }} title="Target Level" />
+                </div>
+              </div>
+            </div>
+
+            {/* Worst Performing Municipal Zones Card */}
+            <div className="glass-card" style={{ padding: '24px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', minHeight: '180px' }}>
+              <div>
+                <h3 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '4px' }}>🚨 Worst Performing Municipal Wards</h3>
+                <p style={{ color: 'var(--text-muted)', fontSize: '0.75rem', marginBottom: '12px' }}>
+                  Wards with the highest volume of unresolved complaints.
+                </p>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {!dashboardData?.worstZones || dashboardData.worstZones.length === 0 ? (
+                  <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem', textAlign: 'center', margin: '20px 0' }}>
+                    All zones performing optimally.
+                  </p>
+                ) : (
+                  dashboardData.worstZones.map((z: any, idx: number) => (
+                    <div key={idx} style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem' }}>
+                        <span style={{ fontWeight: 600 }}>{idx + 1}. {z.zone}</span>
+                        <span style={{ color: '#ef4444', fontWeight: 700 }}>{z.unresolved} unresolved</span>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                        <span>Total Filed: {z.total}</span>
+                        <span>Res. Rate: {z.resolutionRate}%</span>
+                      </div>
+                      <div style={{ height: '4px', background: 'var(--bg-secondary)', borderRadius: '2px', overflow: 'hidden' }}>
+                        <div style={{
+                          height: '100%',
+                          width: `${100 - z.resolutionRate}%`,
+                          background: 'rgba(239, 68, 68, 0.7)',
+                          borderRadius: '2px'
+                        }} />
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          </div>
+
           {/* Main Grid */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '28px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 340px), 1fr))', gap: '16px', marginBottom: '24px' }}>
             {/* Trend Chart */}
             <div className="glass-card" style={{ padding: '24px' }}>
               <h3 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '20px' }}>📈 Weekly Trend</h3>
@@ -243,7 +425,7 @@ export default function CMDashboard() {
           </div>
 
           {/* Department Performance + Critical Alerts */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1.3fr 1fr', gap: '20px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 340px), 1fr))', gap: '16px' }}>
             <div className="glass-card" style={{ padding: '24px', overflow: 'hidden' }}>
               <h3 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '16px' }}>🏢 Department Performance</h3>
               <div style={{ overflowX: 'auto' }}>
@@ -308,58 +490,20 @@ export default function CMDashboard() {
       )}
 
       {activeTab === 'heatmap' && (
-        <div className="glass-card" style={{ padding: '28px', minHeight: '500px', display: 'flex', flexDirection: 'column' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-            <div>
-              <h3 style={{ fontSize: '1.2rem', fontWeight: 700 }}>🗺️ Live Incident Geolocation Heatmap</h3>
-              <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>Displaying civic hotspots and critical clusters across NCT Delhi</p>
-            </div>
-            <div style={{ display: 'flex', gap: '12px', fontSize: '0.8rem' }}>
-              <span style={{ color: '#ef4444' }}>● Critical (Auto-routed)</span>
-              <span style={{ color: '#fbbf24' }}>● High</span>
-              <span style={{ color: '#3b82f6' }}>● Normal</span>
-            </div>
-          </div>
-
-          <div style={{
-            flex: 1, height: '400px', borderRadius: '16px', background: 'radial-gradient(circle, #0f172a 10%, #020617 90%)',
-            border: '1px solid var(--border-color)', position: 'relative', overflow: 'hidden', display: 'flex',
-            alignItems: 'center', justifyContent: 'center'
-          }}>
-            {/* Visual simulation of Delhi Map */}
-            <div style={{ position: 'absolute', width: '80%', height: '80%', opacity: 0.1, border: '2px dashed #3b82f6', borderRadius: '50%' }} />
-            <div style={{ position: 'absolute', width: '50%', height: '50%', opacity: 0.15, border: '2px dashed #06b6d4', borderRadius: '50%' }} />
-            
-            {/* Simulated hotspots */}
-            <div style={{ position: 'absolute', top: '35%', left: '45%', width: '12px', height: '12px', borderRadius: '50%', background: '#ef4444', boxShadow: '0 0 20px #ef4444' }} className="pulse-critical" />
-            <div style={{ position: 'absolute', top: '38%', left: '46%', fontSize: '0.7rem', color: '#fca5a5', fontWeight: 700 }}>Karol Bagh (5 issues)</div>
-            
-            <div style={{ position: 'absolute', top: '20%', left: '30%', width: '12px', height: '12px', borderRadius: '50%', background: '#fbbf24', boxShadow: '0 0 15px #fbbf24' }} />
-            <div style={{ position: 'absolute', top: '23%', left: '31%', fontSize: '0.7rem', color: '#fde047' }}>Rohini (3 issues)</div>
-
-            <div style={{ position: 'absolute', top: '55%', left: '25%', width: '12px', height: '12px', borderRadius: '50%', background: '#ef4444', boxShadow: '0 0 20px #ef4444' }} className="pulse-critical" />
-            <div style={{ position: 'absolute', top: '58%', left: '26%', fontSize: '0.7rem', color: '#fca5a5', fontWeight: 700 }}>Dwarka (7 issues)</div>
-
-            <div style={{ position: 'absolute', top: '65%', left: '60%', width: '12px', height: '12px', borderRadius: '50%', background: '#3b82f6', boxShadow: '0 0 10px #3b82f6' }} />
-            <div style={{ position: 'absolute', top: '68%', left: '61%', fontSize: '0.7rem', color: '#93c5fd' }}>Lajpat Nagar (2 issues)</div>
-
-            <div style={{ position: 'absolute', bottom: '20px', left: '20px', padding: '12px', background: 'rgba(15, 23, 42, 0.85)', borderRadius: '10px', fontSize: '0.8rem', border: '1px solid var(--border-color)' }}>
-              <div style={{ fontWeight: 700, marginBottom: '4px' }}>Map Diagnostics</div>
-              <div>Center: 28.6139° N, 77.2090° E</div>
-              <div>Active Clusters: 18</div>
-            </div>
-          </div>
-        </div>
+        <LiveMap
+          apiUrl={process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}
+          token={localStorage.getItem('accessToken') || ''}
+        />
       )}
 
       {activeTab === 'complaints' && (
         <div className="glass-card" style={{ padding: '24px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
-            <h3 style={{ fontSize: '1.1rem', fontWeight: 700 }}>📋 Comprehensive Incident Ledger</h3>
-            <div style={{ display: 'flex', gap: '10px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
+            <h3 style={{ fontSize: 'clamp(0.95rem, 2vw, 1.1rem)', fontWeight: 700 }}>📋 Comprehensive Incident Ledger</h3>
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', width: '100%', maxWidth: '440px' }}>
               <input
                 className="input"
-                style={{ padding: '8px 12px', fontSize: '0.8rem', width: '220px' }}
+                style={{ padding: '8px 12px', fontSize: '0.8rem', flex: '1 1 180px', minWidth: 0 }}
                 placeholder="Search Reference, title..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
@@ -391,7 +535,11 @@ export default function CMDashboard() {
                       return matchesSearch && matchesStatus;
                     })
                     .map(c => (
-                      <tr key={c._id} style={{ borderBottom: '1px solid var(--border-color)' }}>
+                      <tr 
+                        key={c._id} 
+                        style={{ borderBottom: '1px solid var(--border-color)', cursor: 'pointer' }}
+                        onClick={() => setSelectedComplaint(c)}
+                      >
                         <td style={{ padding: '12px 10px', fontWeight: 600 }}>{c.referenceNumber}</td>
                         <td style={{ padding: '12px 10px' }}>{c.title}</td>
                         <td style={{ padding: '12px 10px', color: 'var(--text-secondary)' }}>{c.category}</td>
@@ -422,55 +570,105 @@ export default function CMDashboard() {
 
       {activeTab === 'officers' && (
         <div className="glass-card" style={{ padding: '24px' }}>
-          <h3 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: '20px' }}>👮 Officer Workload Ledger</h3>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '16px' }}>
-            {[
-              { name: 'Priya Singh', email: 'priya.singh@delhi.gov.in', dept: 'DJB', active: 8, resolved: 34, load: 'Optimal' },
-              { name: 'Rajesh Verma', email: 'rajesh.verma@delhi.gov.in', dept: 'PWD', active: 14, resolved: 58, load: 'High' },
-              { name: 'Amit Gupta', email: 'amit.gupta@delhi.gov.in', dept: 'MCD', active: 5, resolved: 19, load: 'Low' },
-              { name: 'Sanjay Kumar', email: 'sanjay.k@delhi.gov.in', dept: 'BSES', active: 11, resolved: 42, load: 'High' },
-              { name: 'Neha Sharma', email: 'neha.sharma@delhi.gov.in', dept: 'POLICE', active: 7, resolved: 27, load: 'Optimal' }
-            ].map((off, i) => (
-              <div key={i} className="stat-card" style={{ background: 'var(--bg-secondary)', border: '1px solid var(--border-color)', padding: '20px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
-                  <div>
-                    <div style={{ fontWeight: 700, fontSize: '1rem' }}>{off.name}</div>
-                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{off.email}</div>
+          <h3 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: '20px' }}>👮 Officer Workload Ledger (Live)</h3>
+          {officerLoading ? (
+            <div className="skeleton" style={{ height: '200px' }} />
+          ) : officerLedger.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>
+              No officers found. Officers will appear here once assigned to departments.
+            </div>
+          ) : (
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))', gap: '16px' }}>
+              {officerLedger.map((off: any, i: number) => {
+                const isSuspended = off.officer?.isSuspended;
+                const loadColor = isSuspended ? '#ef4444' : off.status === 'overloaded' ? '#ef4444' : off.status === 'busy' ? '#f59e0b' : '#10b981';
+                const loadLabel = isSuspended ? 'Suspended' : off.status === 'overloaded' ? 'Overloaded' : off.status === 'busy' ? 'Busy' : 'Available';
+                const warningsCount = off.officer?.warnings?.length || 0;
+                return (
+                  <div key={i} className="stat-card" style={{ background: 'var(--bg-secondary)', border: `1px solid ${isSuspended ? 'rgba(239, 68, 68, 0.4)' : 'var(--border-color)'}`, padding: '20px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: '12px' }}>
+                    <div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '12px' }}>
+                        <div>
+                          <div style={{ fontWeight: 700, fontSize: '1rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            {off.officer?.name || 'Unknown'}
+                            {isSuspended && <span style={{ fontSize: '0.65rem', background: '#ef4444', color: 'white', padding: '2px 4px', borderRadius: '3px', fontWeight: 'bold' }}>SUSPENDED</span>}
+                          </div>
+                          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Ward: {off.officer?.ward || 'Unassigned'}</div>
+                        </div>
+                        <span style={{ fontSize: '0.7rem', padding: '2px 8px', borderRadius: '4px', background: 'rgba(59,130,246,0.1)', color: '#93c5fd', fontWeight: 700 }}>{off.department?.code || 'N/A'}</span>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', marginTop: '12px' }}>
+                        <span>Active: <strong>{off.activeTickets}</strong></span>
+                        <span>Resolved: <strong>{off.resolvedTickets}</strong></span>
+                      </div>
+                      <div style={{ marginTop: '12px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', marginBottom: '6px' }}>
+                          <span style={{ color: 'var(--text-muted)' }}>Load: {off.loadPercent}%</span>
+                          <span style={{ fontWeight: 700, color: loadColor }}>{loadLabel}</span>
+                        </div>
+                        <div style={{ height: '6px', background: 'var(--bg-primary)', borderRadius: '3px', overflow: 'hidden' }}>
+                          <div style={{ height: '100%', width: `${Math.min(off.loadPercent, 100)}%`, background: loadColor, borderRadius: '3px', transition: 'width 0.5s ease' }} />
+                        </div>
+                      </div>
+                      <div style={{ marginTop: '12px', fontSize: '0.8rem', color: warningsCount > 0 ? '#fca5a5' : 'var(--text-muted)' }}>
+                        ⚠️ Disciplinary Warnings: <strong>{warningsCount}</strong>
+                      </div>
+                      {isSuspended && off.officer?.suspensionReason && (
+                        <div style={{ marginTop: '8px', fontSize: '0.75rem', color: '#fca5a5', background: 'rgba(239, 68, 68, 0.1)', padding: '6px', borderRadius: '4px', border: '1px dashed rgba(239, 68, 68, 0.3)' }}>
+                          <strong>Reason:</strong> {off.officer.suspensionReason}
+                        </div>
+                      )}
+                    </div>
+                    
+                    <div style={{ display: 'flex', gap: '8px', marginTop: '12px', borderTop: '1px solid var(--border-color)', paddingTop: '12px' }}>
+                      <button 
+                        onClick={() => handleIssueWarning(off.officer?.id)} 
+                        className="btn btn-ghost" 
+                        style={{ flex: 1, padding: '6px', fontSize: '0.75rem', borderColor: 'rgba(245, 158, 11, 0.4)', color: '#f59e0b' }}
+                      >
+                        ⚠️ Reprimand
+                      </button>
+                      <button 
+                        onClick={() => handleToggleSuspend(off.officer?.id, !!isSuspended)} 
+                        className="btn" 
+                        style={{ 
+                          flex: 1, 
+                          padding: '6px', 
+                          fontSize: '0.75rem', 
+                          background: isSuspended ? 'rgba(16, 185, 129, 0.2)' : 'rgba(239, 68, 68, 0.2)', 
+                          color: isSuspended ? '#10b981' : '#ef4444',
+                          border: `1px solid ${isSuspended ? '#10b981' : '#ef4444'}` 
+                        }}
+                      >
+                        {isSuspended ? '✔️ Restore' : '🚫 Suspend'}
+                      </button>
+                    </div>
                   </div>
-                  <span style={{ fontSize: '0.7rem', padding: '2px 8px', borderRadius: '4px', background: 'rgba(59,130,246,0.1)', color: '#93c5fd', fontWeight: 700 }}>{off.dept}</span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', marginTop: '12px' }}>
-                  <span>Active Tasks: <strong>{off.active}</strong></span>
-                  <span>Resolved: <strong>{off.resolved}</strong></span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '12px', fontSize: '0.8rem' }}>
-                  <span style={{ color: 'var(--text-muted)' }}>Bandwidth:</span>
-                  <span style={{
-                    fontWeight: 700,
-                    color: off.load === 'High' ? '#ef4444' : off.load === 'Optimal' ? '#10b981' : '#3b82f6'
-                  }}>{off.load}</span>
-                </div>
-              </div>
-            ))}
-          </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       )}
 
-      {activeTab === 'sla' && (
+      {activeTab === 'sla' && (() => {
+        const slaOverview = dashboardData?.slaOverview || { avgResolutionHours: 0, overallCompliance: 100, unresolvedBreaches: 0 };
+        const slaReport = dashboardData?.slaReport || [];
+        return (
         <div className="glass-card" style={{ padding: '24px' }}>
-          <h3 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: '20px' }}>⏱️ SLA compliance & Breaches</h3>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px', marginBottom: '24px' }}>
+          <h3 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: '20px' }}>⏱️ SLA Compliance & Breaches (Live)</h3>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 180px), 1fr))', gap: '12px', marginBottom: '24px' }}>
             <div className="stat-card">
               <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Average Resolution Time</div>
-              <div style={{ fontSize: '1.5rem', fontWeight: 800 }}>18.4 Hours</div>
+              <div style={{ fontSize: '1.5rem', fontWeight: 800 }}>{slaOverview.avgResolutionHours} Hours</div>
             </div>
             <div className="stat-card critical">
               <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Unresolved Breaches</div>
-              <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#fca5a5' }}>{summary.slaBreaches}</div>
+              <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#fca5a5' }}>{slaOverview.unresolvedBreaches}</div>
             </div>
             <div className="stat-card success">
               <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>SLA Compliance Rate</div>
-              <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#6ee7b7' }}>82.1%</div>
+              <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#6ee7b7' }}>{slaOverview.overallCompliance}%</div>
             </div>
           </div>
 
@@ -478,25 +676,26 @@ export default function CMDashboard() {
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
               <thead>
                 <tr style={{ borderBottom: '1px solid var(--border-color)' }}>
-                  {['Department', 'SLA Target', 'Breached Tickets', 'Compliance Rate'].map(h => (
+                  {['Department', 'SLA Target', 'Breached', 'Avg Resolution', 'Compliance'].map(h => (
                     <th key={h} style={{ padding: '10px', textAlign: 'left', color: 'var(--text-muted)', fontSize: '0.75rem', textTransform: 'uppercase' }}>{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
-                {[
-                  { dept: 'Delhi Jal Board (DJB)', target: '24 Hours', breaches: 18, rate: '80.2%' },
-                  { dept: 'Public Works Department (PWD)', target: '48 Hours', breaches: 19, rate: '81.5%' },
-                  { dept: 'Municipal Corporation (MCD)', target: '36 Hours', breaches: 20, rate: '79.1%' },
-                  { dept: 'BSES Electricity (BSES)', target: '12 Hours', breaches: 18, rate: '84.6%' },
-                  { dept: 'Delhi Police (POLICE)', target: '24 Hours', breaches: 17, rate: '85.1%' }
-                ].map((row, i) => (
+                {slaReport.length === 0 ? (
+                  <tr><td colSpan={5} style={{ padding: '20px', textAlign: 'center', color: 'var(--text-muted)' }}>No SLA data available yet.</td></tr>
+                ) : slaReport.map((row: any, i: number) => (
                   <tr key={i} style={{ borderBottom: '1px solid var(--border-color)' }}>
-                    <td style={{ padding: '12px 10px', fontWeight: 600 }}>{row.dept}</td>
-                    <td style={{ padding: '12px 10px', color: 'var(--text-secondary)' }}>{row.target}</td>
-                    <td style={{ padding: '12px 10px', color: '#fca5a5', fontWeight: 600 }}>{row.breaches}</td>
+                    <td style={{ padding: '12px 10px', fontWeight: 600 }}>{row.department?.name} ({row.department?.code})</td>
+                    <td style={{ padding: '12px 10px', color: 'var(--text-secondary)' }}>{row.slaTarget}</td>
+                    <td style={{ padding: '12px 10px', color: '#fca5a5', fontWeight: 600 }}>{row.breached}</td>
+                    <td style={{ padding: '12px 10px' }}>{row.avgResolutionHours}h</td>
                     <td style={{ padding: '12px 10px' }}>
-                      <span style={{ padding: '3px 8px', borderRadius: '4px', background: 'rgba(16,185,129,0.1)', color: '#6ee7b7', fontWeight: 700 }}>{row.rate}</span>
+                      <span style={{
+                        padding: '3px 8px', borderRadius: '4px', fontWeight: 700,
+                        background: row.complianceRate >= 80 ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)',
+                        color: row.complianceRate >= 80 ? '#6ee7b7' : '#fca5a5',
+                      }}>{row.complianceRate}%</span>
                     </td>
                   </tr>
                 ))}
@@ -504,7 +703,8 @@ export default function CMDashboard() {
             </table>
           </div>
         </div>
-      )}
+        );
+      })()}
 
       {activeTab === 'alerts' && (
         <div className="glass-card" style={{ padding: '24px' }}>
@@ -527,6 +727,195 @@ export default function CMDashboard() {
                 </div>
               </div>
             ))}
+          </div>
+        </div>
+      )}
+      {/* Selected Complaint Detail Modal */}
+      {selectedComplaint && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 1000,
+          background: 'rgba(0,0,0,0.6)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+          backdropFilter: 'blur(4px)', padding: '16px'
+        }}>
+          <div className="glass-card" style={{ width: '100%', maxWidth: '800px', maxHeight: '90vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+            {/* Modal Header */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px 24px', borderBottom: '1px solid var(--border-color)', flexShrink: 0 }}>
+              <div>
+                <span className="badge badge-ghost" style={{ marginRight: '8px', fontSize: '0.8rem' }}>📋 {selectedComplaint.referenceNumber}</span>
+                <span className={`badge badge-${selectedComplaint.status}`} style={{ textTransform: 'capitalize', fontSize: '0.8rem', marginRight: '8px' }}>
+                  {selectedComplaint.status.replace(/_/g, ' ')}
+                </span>
+                <span className={`badge badge-${selectedComplaint.priority}`} style={{ fontSize: '0.8rem' }}>
+                  {selectedComplaint.priority} Priority
+                </span>
+              </div>
+              <button 
+                onClick={() => setSelectedComplaint(null)} 
+                className="btn btn-ghost" 
+                style={{ padding: '4px 8px', minWidth: 'auto', fontSize: '1.2rem', color: 'var(--text-muted)' }}
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div style={{ padding: '24px', overflowY: 'auto', flex: 1, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '24px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                {/* Title & Description */}
+                <div>
+                  <h2 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: '8px' }}>{selectedComplaint.title}</h2>
+                  <p style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', lineHeight: '1.5', whiteSpace: 'pre-wrap' }}>
+                    {selectedComplaint.description}
+                  </p>
+                </div>
+
+                {/* Citizen Media */}
+                {selectedComplaint.media && selectedComplaint.media.length > 0 && (
+                  <div>
+                    <h4 style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '8px', textTransform: 'uppercase' }}>Citizen Uploads</h4>
+                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                      {selectedComplaint.media.map((item: any, idx: number) => {
+                        const url = item.url.startsWith('/') ? `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}${item.url}` : item.url;
+                        return (
+                          <div key={idx} style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                            <img
+                              src={url}
+                              alt="Citizen grievance media"
+                              style={{ maxWidth: '100%', maxHeight: '160px', borderRadius: '6px', border: '1px solid var(--border-color)', objectFit: 'contain' }}
+                            />
+                            {item.metadata?.gpsLat && (
+                              <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+                                📍 {item.metadata.gpsLat.toFixed(4)}, {item.metadata.gpsLng.toFixed(4)}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Resolution Evidence */}
+                {selectedComplaint.resolutionEvidence && (
+                  <div style={{ padding: '16px', background: 'rgba(16, 185, 129, 0.05)', borderRadius: '12px', border: '1px solid rgba(16, 185, 129, 0.15)' }}>
+                    <h3 style={{ fontSize: '0.95rem', fontWeight: 700, color: '#6ee7b7', marginBottom: '8px' }}>🔍 Resolution Evidence</h3>
+                    <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '10px' }}>
+                      <strong>Officer Notes:</strong> &ldquo;{selectedComplaint.resolutionEvidence.description || 'No explanation notes.'}&rdquo;
+                    </p>
+                    {selectedComplaint.resolutionEvidence.media && selectedComplaint.resolutionEvidence.media.length > 0 && (
+                      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                        {selectedComplaint.resolutionEvidence.media.map((item: any, idx: number) => {
+                          const url = item.url.startsWith('/') ? `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'}${item.url}` : item.url;
+                          return (
+                            <div key={idx} style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img
+                                src={url}
+                                alt="Resolution evidence media"
+                                style={{ maxWidth: '100%', maxHeight: '180px', borderRadius: '6px', border: '1px solid var(--border-color)', objectFit: 'contain' }}
+                              />
+                              {item.metadata?.gpsLat && (
+                                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                                  📍 Verified GPS Coordinate Check: {item.metadata.gpsLat.toFixed(6)}, {item.metadata.gpsLng.toFixed(6)}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Spot Directive */}
+                {selectedComplaint.spotDirective && (
+                  <div style={{ padding: '16px', background: 'rgba(239, 68, 68, 0.05)', borderRadius: '12px', border: '1px solid rgba(239, 68, 68, 0.15)' }}>
+                    <h3 style={{ fontSize: '0.95rem', fontWeight: 700, color: '#fca5a5', marginBottom: '4px' }}>🚨 Spot Directive Issued</h3>
+                    <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '6px' }}>
+                      &ldquo;{selectedComplaint.spotDirective.directive}&rdquo;
+                    </p>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                      Priority: <span style={{ textTransform: 'capitalize', fontWeight: 600 }}>{selectedComplaint.spotDirective.priority.replace(/_/g, ' ')}</span> •
+                      Issued: {new Date(selectedComplaint.spotDirective.issuedAt).toLocaleString('en-IN')}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Sidebar Info */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', borderLeft: '1px solid var(--border-color)', paddingLeft: '16px' }}>
+                <div>
+                  <h4 style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '4px', textTransform: 'uppercase' }}>Department Routing</h4>
+                  <div style={{ fontSize: '0.9rem', fontWeight: 600 }}>
+                    {selectedComplaint.assignedDepartment?.name || 'Pending routing'} ({selectedComplaint.assignedDepartment?.code || 'N/A'})
+                  </div>
+                </div>
+
+                <div>
+                  <h4 style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '4px', textTransform: 'uppercase' }}>Assigned Field Officer</h4>
+                  <div style={{ fontSize: '0.9rem', fontWeight: 600 }}>
+                    {formatUserName(selectedComplaint.assignedOfficer)}
+                  </div>
+                </div>
+
+                <div>
+                  <h4 style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '4px', textTransform: 'uppercase' }}>SLA Target</h4>
+                  <div style={{ fontSize: '0.9rem', fontWeight: 600, color: selectedComplaint.sla?.breached ? '#ef4444' : '#fbbf24' }}>
+                    {selectedComplaint.sla?.deadline ? new Date(selectedComplaint.sla.deadline).toLocaleString('en-IN') : 'N/A'}
+                    {selectedComplaint.sla?.breached && ' (BREACHED ❌)'}
+                  </div>
+                </div>
+
+                <div>
+                  <h4 style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '4px', textTransform: 'uppercase' }}>Date Submitted</h4>
+                  <div style={{ fontSize: '0.9rem', fontWeight: 600 }}>
+                    {new Date(selectedComplaint.createdAt).toLocaleString('en-IN')}
+                  </div>
+                </div>
+
+                {/* Citizen Feedback */}
+                {selectedComplaint.citizenFeedback && (
+                  <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '16px' }}>
+                    <h4 style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '6px', textTransform: 'uppercase' }}>Citizen Review</h4>
+                    <div style={{ display: 'flex', gap: '4px', fontSize: '1.25rem', color: '#fbbf24', marginBottom: '6px' }}>
+                      {selectedComplaint.citizenFeedback.rating ? (
+                        Array.from({ length: 5 }).map((_, i) => (
+                          <span key={i} style={{ opacity: i < selectedComplaint.citizenFeedback.rating ? 1 : 0.2 }}>★</span>
+                        ))
+                      ) : (
+                        <span style={{ fontSize: '0.85rem', color: '#ef4444', fontWeight: 600 }}>REJECTED ❌</span>
+                      )}
+                    </div>
+                    {selectedComplaint.citizenFeedback.rejectionReason && (
+                      <p style={{ fontSize: '0.85rem', color: '#fca5a5', fontStyle: 'italic', background: 'rgba(239, 68, 68, 0.05)', padding: '8px', borderRadius: '6px', border: '1px solid rgba(239, 68, 68, 0.15)' }}>
+                        <strong>Rejection Reason:</strong> &ldquo;{selectedComplaint.citizenFeedback.rejectionReason}&rdquo;
+                      </p>
+                    )}
+                    {selectedComplaint.citizenFeedback.ratingComment && (
+                      <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', fontStyle: 'italic' }}>
+                        &ldquo;{selectedComplaint.citizenFeedback.ratingComment}&rdquo;
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {/* Escalation History */}
+                {selectedComplaint.escalationHistory && selectedComplaint.escalationHistory.length > 0 && (
+                  <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '16px' }}>
+                    <h4 style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '8px', textTransform: 'uppercase' }}>Escalation Logs</h4>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '0.8rem' }}>
+                      {selectedComplaint.escalationHistory.map((item: any, idx: number) => (
+                        <div key={idx} style={{ padding: '6px 10px', background: 'rgba(255,255,255,0.02)', borderRadius: '6px', border: '1px solid var(--border-color)' }}>
+                          <span style={{ fontWeight: 600, color: '#fca5a5' }}>Level {item.level} Escalation</span>
+                          <div style={{ color: 'var(--text-secondary)', marginTop: '2px' }}>{item.reason}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
         </div>
       )}

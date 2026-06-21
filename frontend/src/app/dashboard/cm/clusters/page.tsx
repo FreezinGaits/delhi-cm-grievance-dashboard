@@ -51,6 +51,14 @@ const categoryEmojis: Record<string, string> = {
   'Noise Pollution': '🔊',
 };
 
+const formatUserName = (nameObj: any) => {
+  if (!nameObj) return '';
+  if (typeof nameObj === 'object') {
+    return `${nameObj.first || ''} ${nameObj.last || ''}`.trim();
+  }
+  return nameObj;
+};
+
 export default function ClustersPage() {
   const [clusters, setClusters] = useState<Cluster[]>([]);
   const [loading, setLoading] = useState(true);
@@ -121,7 +129,7 @@ export default function ClustersPage() {
     return (
       <div className="animate-fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
         <div style={{ height: '40px', width: '300px' }} className="skeleton" />
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 140px), 1fr))', gap: '12px' }}>
           {[1,2,3,4].map(i => <div key={i} style={{ height: '80px' }} className="skeleton" />)}
         </div>
         <div style={{ height: '400px' }} className="skeleton" />
@@ -132,18 +140,18 @@ export default function ClustersPage() {
   return (
     <div className="animate-fade-in">
       {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-        <div>
-          <h1 style={{ fontSize: '1.75rem', fontWeight: 800, marginBottom: '4px' }}>🔗 Master Incident Clusters</h1>
-          <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>DBSCAN spatial clustering — same category within 50m radius</p>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '24px', flexWrap: 'wrap', gap: '12px' }}>
+        <div style={{ minWidth: 0 }}>
+          <h1 style={{ fontSize: 'clamp(1.25rem, 3vw, 1.75rem)', fontWeight: 800, marginBottom: '4px' }}>🔗 Master Incident Clusters</h1>
+          <p style={{ color: 'var(--text-muted)', fontSize: 'clamp(0.75rem, 1.5vw, 0.9rem)' }}>DBSCAN spatial clustering — same category within 50m radius</p>
         </div>
-        <button onClick={triggerClustering} className="btn btn-primary" disabled={clustering}>
+        <button onClick={triggerClustering} className="btn btn-primary" disabled={clustering} style={{ flexShrink: 0 }}>
           {clustering ? '⏳ Running DBSCAN...' : '🔄 Run Clustering'}
         </button>
       </div>
 
       {/* Summary Stats */}
-      <div className="stagger-children" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '12px', marginBottom: '24px' }}>
+      <div className="stagger-children" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 140px), 1fr))', gap: '12px', marginBottom: '24px' }}>
         <div className="stat-card" style={{ padding: '14px 16px' }}>
           <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '4px' }}>Active Clusters</div>
           <div style={{ fontSize: '1.5rem', fontWeight: 800 }}>{meta.total}</div>
@@ -170,7 +178,7 @@ export default function ClustersPage() {
           <button onClick={triggerClustering} className="btn btn-primary">Run DBSCAN Now</button>
         </div>
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(380px, 1fr))', gap: '16px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 340px), 1fr))', gap: '16px' }}>
           {clusters.map(cluster => {
             const emoji = categoryEmojis[cluster.category] || '📌';
             const master = cluster.masterComplaintId;
@@ -211,7 +219,7 @@ export default function ClustersPage() {
 
                 {/* Footer */}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                  <span>👮 {master?.assignedOfficer?.name || 'Unassigned'}</span>
+                  <span>👮 {formatUserName(master?.assignedOfficer?.name) || 'Unassigned'}</span>
                   <span>📍 {cluster.location.coordinates[1].toFixed(4)}°N, {cluster.location.coordinates[0].toFixed(4)}°E</span>
                 </div>
 
@@ -267,7 +275,7 @@ export default function ClustersPage() {
                   <button onClick={() => setSelectedCluster(null)} className="btn btn-ghost" style={{ padding: '6px 10px' }}>✕</button>
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px', marginBottom: '20px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 100px), 1fr))', gap: '10px', marginBottom: '20px' }}>
                   <div style={{ padding: '12px', borderRadius: '10px', background: 'var(--bg-secondary)', textAlign: 'center' }}>
                     <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginBottom: '4px' }}>Complaints</div>
                     <div style={{ fontSize: '1.3rem', fontWeight: 800 }}>{selectedCluster.cluster.complaintCount}</div>
@@ -306,7 +314,7 @@ export default function ClustersPage() {
                       </div>
                       <div style={{ textAlign: 'right' }}>
                         <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                          {c.citizenId?.name || 'Anonymous'}
+                          {formatUserName(c.citizenId?.name) || 'Anonymous'}
                         </div>
                         <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
                           {new Date(c.createdAt).toLocaleDateString('en-IN')}

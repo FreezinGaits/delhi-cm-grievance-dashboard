@@ -38,7 +38,7 @@ router.post('/login/otp/verify', authLimiter, AuthController.verifyOTP);
  * @desc    Refresh access token using refresh token
  * @access  Public (with valid refresh token)
  */
-router.post('/refresh', AuthController.refresh);
+router.post('/refresh', authLimiter, AuthController.refresh);
 
 /**
  * @route   POST /api/v1/auth/logout

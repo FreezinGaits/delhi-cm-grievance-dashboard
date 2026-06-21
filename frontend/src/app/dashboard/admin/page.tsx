@@ -39,18 +39,18 @@ export default function AdminDashboard() {
   return (
     <div className="animate-fade-in">
       {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '28px' }}>
-        <div>
-          <h1 style={{ fontSize: '1.75rem', fontWeight: 800, marginBottom: '4px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '24px', flexWrap: 'wrap', gap: '12px' }}>
+        <div style={{ minWidth: 0 }}>
+          <h1 style={{ fontSize: 'clamp(1.25rem, 3vw, 1.75rem)', fontWeight: 800, marginBottom: '4px' }}>
             {activeTab === 'users' ? 'User Management' : activeTab === 'departments' ? 'Department Directory' : 'Audit Logs'}
           </h1>
-          <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>
+          <p style={{ color: 'var(--text-muted)', fontSize: 'clamp(0.75rem, 1.5vw, 0.9rem)' }}>
             {activeTab === 'users' ? `${MOCK_USERS.length} total users across all roles` :
              activeTab === 'departments' ? `${MOCK_DEPARTMENTS.length} active administrative departments` :
              'Secure tamper-proof system activity log'}
           </p>
         </div>
-        <div>
+        <div style={{ flexShrink: 0 }}>
           {activeTab === 'users' && <button className="btn btn-primary">➕ Add User</button>}
           {activeTab === 'departments' && <button className="btn btn-primary">🏢 Add Department</button>}
         </div>
@@ -59,7 +59,7 @@ export default function AdminDashboard() {
       {activeTab === 'users' && (
         <>
           {/* Role summary */}
-          <div className="stagger-children" style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '12px', marginBottom: '28px' }}>
+          <div className="stagger-children" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 120px), 1fr))', gap: '10px', marginBottom: '24px' }}>
             {['cm', 'admin', 'department_head', 'officer', 'citizen'].map((role) => {
               const count = MOCK_USERS.filter((u) => u.role === role).length;
               return (
@@ -74,8 +74,9 @@ export default function AdminDashboard() {
           </div>
 
           {/* Users table */}
-          <div className="glass-card" style={{ padding: '24px', overflow: 'hidden' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
+          <div className="glass-card" style={{ padding: '20px', overflow: 'hidden' }}>
+            <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' as any }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem', minWidth: '700px' }}>
               <thead>
                 <tr style={{ borderBottom: '1px solid var(--border-color)' }}>
                   {['Name', 'Email', 'Role', 'Department', 'Status', 'Last Login', 'Actions'].map((h) => (
@@ -107,13 +108,15 @@ export default function AdminDashboard() {
                 ))}
               </tbody>
             </table>
+            </div>
           </div>
         </>
       )}
 
       {activeTab === 'departments' && (
-        <div className="glass-card" style={{ padding: '24px', overflow: 'hidden' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
+        <div className="glass-card" style={{ padding: '20px', overflow: 'hidden' }}>
+          <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' as any }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem', minWidth: '600px' }}>
             <thead>
               <tr style={{ borderBottom: '1px solid var(--border-color)' }}>
                 {['Code', 'Name', 'Head Officer', 'Active Complaints', 'Status', 'Actions'].map((h) => (
@@ -138,12 +141,14 @@ export default function AdminDashboard() {
               ))}
             </tbody>
           </table>
+          </div>
         </div>
       )}
 
       {activeTab === 'audit' && (
-        <div className="glass-card" style={{ padding: '24px', overflow: 'hidden' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
+        <div className="glass-card" style={{ padding: '20px', overflow: 'hidden' }}>
+          <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' as any }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem', minWidth: '650px' }}>
             <thead>
               <tr style={{ borderBottom: '1px solid var(--border-color)' }}>
                 {['Timestamp', 'Level', 'User/Actor', 'Action', 'Details'].map((h) => (
@@ -169,6 +174,7 @@ export default function AdminDashboard() {
               ))}
             </tbody>
           </table>
+          </div>
         </div>
       )}
     </div>

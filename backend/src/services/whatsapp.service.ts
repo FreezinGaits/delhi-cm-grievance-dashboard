@@ -12,6 +12,15 @@ import bcrypt from 'bcryptjs';
 
 const COMPLAINT_CATEGORIES = ['Water Supply', 'Roads', 'Sanitation', 'Electricity', 'Law & Order'];
 
+// Hindi/Hinglish category aliases → canonical English category
+const HINDI_CATEGORY_MAP: Record<string, string> = {
+  'paani': 'Water Supply', 'pani': 'Water Supply', 'jal': 'Water Supply', 'water': 'Water Supply',
+  'sadak': 'Roads', 'sarak': 'Roads', 'road': 'Roads', 'pothole': 'Roads', 'gadha': 'Roads',
+  'safai': 'Sanitation', 'kuda': 'Sanitation', 'kachra': 'Sanitation', 'gandagi': 'Sanitation', 'garbage': 'Sanitation',
+  'bijli': 'Electricity', 'light': 'Electricity', 'current': 'Electricity', 'electricity': 'Electricity',
+  'police': 'Law & Order', 'suraksha': 'Law & Order', 'kanoon': 'Law & Order', 'chori': 'Law & Order', 'crime': 'Law & Order',
+};
+
 const SESSION_TTL_SECONDS = 3600; // 1 hour session timeout
 
 /**
@@ -52,16 +61,18 @@ export class WhatsAppService {
       }
     }
 
-    // Check DB for active session
-    let session = await WhatsAppSession.findOne({ phoneNumber, isActive: true });
-
-    if (!session) {
-      session = await WhatsAppSession.create({
-        phoneNumber,
-        currentConversationState: ConversationState.START,
-        lastMessageAt: new Date(),
-      });
-    }
+    // Use atomic upsert to prevent race conditions from concurrent webhook requests
+    let session = await WhatsAppSession.findOneAndUpdate(
+      { phoneNumber, isActive: true },
+      {
+        $setOnInsert: {
+          phoneNumber,
+          currentConversationState: ConversationState.START,
+          lastMessageAt: new Date(),
+        }
+      },
+      { new: true, upsert: true }
+    );
 
     // Cache in Redis
     if (redis) {
@@ -201,6 +212,11 @@ export class WhatsAppService {
     const textBody = message.text?.body?.trim() || '';
     const upperText = textBody.toUpperCase();
 
+    // Reject unsupported media types immediately
+    if (['audio', 'video', 'document', 'sticker', 'voice'].includes(message.type)) {
+      return this.sendAndLog(from, session, '⚠️ Sorry, we currently only accept text, location, and image messages. Please type your response.');
+    }
+
     // Log inbound
     await this.logInboundMessage(
       from,
@@ -214,20 +230,20 @@ export class WhatsAppService {
       },
     );
 
-    // ── Global Commands (available in any state) ────────
-    if (upperText === 'HELP') {
+    // ── Global Commands (available in any state) — supports Hindi/Hinglish ────────
+    if (upperText === 'HELP' || upperText === 'MADAD' || upperText === 'SAHAYATA') {
       return this.handleHelp(from, session);
     }
-    if (upperText === 'STATUS' || upperText === 'MY COMPLAINTS') {
+    if (upperText === 'STATUS' || upperText === 'MY COMPLAINTS' || upperText === 'STHITI' || upperText === 'MERI SHIKAYAT') {
       return this.handleMyComplaints(from, session);
     }
     if (upperText.startsWith('TRACK ')) {
       const ref = textBody.substring(6).trim();
       return this.handleTrack(from, session, ref);
     }
-    if (upperText === 'CANCEL') {
+    if (upperText === 'CANCEL' || upperText === 'RADD' || upperText === 'BAND KARO') {
       await this.closeSession(session);
-      return this.sendAndLog(from, session, '❌ Session cancelled. Send "Hi" to start again.');
+      return this.sendAndLog(from, session, '❌ Session cancelled / शिकायत रद्द। Send "Hi" to start again.');
     }
 
     // ── State-specific handlers ─────────────────────────
@@ -270,10 +286,12 @@ export class WhatsAppService {
   private static async handleStart(from: string, session: IWhatsAppSession): Promise<void> {
     await this.updateSessionState(session, ConversationState.AWAITING_NAME);
     await this.sendAndLog(from, session,
-      `🏛️ *Welcome to the Delhi CM Governance Platform*\n\n` +
-      `I'll help you file a grievance directly to the Chief Minister's Office.\n\n` +
-      `Please enter your *full name*:\n\n` +
-      `_(Type HELP for commands, CANCEL to abort)_`,
+      `🏛️ *Welcome to the Delhi CM Governance Platform*\n` +
+      `🏛️ *दिल्ली CM शिकायत प्लेटफ़ॉर्म में आपका स्वागत है*\n\n` +
+      `I'll help you file a grievance directly to the Chief Minister's Office.\n` +
+      `मैं आपकी शिकायत सीधे मुख्यमंत्री कार्यालय तक पहुँचाने में मदद करूँगा।\n\n` +
+      `Please enter your *full name* / कृपया अपना *पूरा नाम* लिखें:\n\n` +
+      `_(Type HELP / MADAD for commands, CANCEL / RADD to abort)_`,
     );
   }
 
@@ -327,25 +345,72 @@ export class WhatsAppService {
     if (num >= 1 && num <= COMPLAINT_CATEGORIES.length) {
       category = COMPLAINT_CATEGORIES[num - 1];
     } else {
-      // Try text match
+      // Try exact English match
       category = COMPLAINT_CATEGORIES.find(
         (c) => c.toLowerCase() === text.toLowerCase(),
       );
     }
 
+    // Try Hindi/Hinglish keyword match
     if (!category) {
-      const categoryList = COMPLAINT_CATEGORIES.map((c, i) => `${i + 1}. ${c}`).join('\n');
-      return this.sendAndLog(from, session,
-        `⚠️ Invalid category. Please reply with a number (1-${COMPLAINT_CATEGORIES.length}):\n\n${categoryList}`,
-      );
+      const lowerText = text.toLowerCase().trim();
+      category = HINDI_CATEGORY_MAP[lowerText];
+    }
+
+    // Try interactive button reply ID (e.g., 'cat_1')
+    if (!category && text.startsWith('cat_')) {
+      const idx = parseInt(text.substring(4), 10) - 1;
+      if (idx >= 0 && idx < COMPLAINT_CATEGORIES.length) category = COMPLAINT_CATEGORIES[idx];
+    }
+
+    if (!category) {
+      // Send interactive list for better UX
+      await this.sendInteractiveCategoryList(from, session);
+      return;
     }
 
     await this.updateSessionState(session, ConversationState.AWAITING_COMPLAINT, { category });
     await this.sendAndLog(from, session,
-      `📂 Category: *${category}*\n\n` +
+      `📂 Category / श्रेणी: *${category}*\n\n` +
       `Please *describe your complaint* in detail.\n` +
+      `कृपया अपनी *शिकायत विस्तार से बताएं*।\n\n` +
       `Include what the problem is, how long it has been happening, and any specific details.`,
     );
+  }
+
+  /**
+   * Send an interactive list for category selection (Meta WhatsApp Interactive API)
+   */
+  private static async sendInteractiveCategoryList(from: string, session: IWhatsAppSession): Promise<void> {
+    const categoryLabels: Record<string, string> = {
+      'Water Supply': '💧 Water Supply / पानी',
+      'Roads': '🛣️ Roads / सड़क',
+      'Sanitation': '🧹 Sanitation / सफ़ाई',
+      'Electricity': '⚡ Electricity / बिजली',
+      'Law & Order': '🚔 Law & Order / कानून',
+    };
+
+    const result = await WhatsAppProvider.sendMessage({
+      to: from,
+      type: 'interactive',
+      interactive: {
+        type: 'list',
+        header: { type: 'text', text: '📂 Select Complaint Category' },
+        body: { text: 'Please choose a category below.\nनीचे से एक श्रेणी चुनें।' },
+        action: {
+          button: 'Choose Category',
+          sections: [{
+            title: 'Categories / श्रेणियाँ',
+            rows: COMPLAINT_CATEGORIES.map((cat, i) => ({
+              id: `cat_${i + 1}`,
+              title: categoryLabels[cat] || cat,
+              description: cat,
+            })),
+          }],
+        },
+      },
+    });
+    await this.logOutboundMessage(from, '[Interactive List: Category Selection]', session._id as mongoose.Types.ObjectId, result.messageId);
   }
 
   private static async handleComplaint(from: string, session: IWhatsAppSession, description: string): Promise<void> {
@@ -388,23 +453,33 @@ export class WhatsAppService {
       );
     }
 
-    // Show summary for confirmation
+    // Show summary and send interactive confirmation buttons
     const data = session.conversationData;
-    await this.sendAndLog(from, session,
-      `📋 *Complaint Summary*\n\n` +
+    const summaryText =
+      `📋 *Complaint Summary / शिकायत सारांश*\n\n` +
       `👤 Name: ${data.name}\n` +
       `📍 Ward: ${data.ward || 'Auto-detect'}\n` +
       `📂 Category: ${data.category}\n` +
-      `📝 Description: ${data.description}\n` +
-      `📸 Photo: ${data.mediaUrl ? 'Yes' : 'No'}\n\n` +
-      `Reply *YES* to submit or *NO* to cancel.`,
-    );
+      `📝 Description: ${data.description?.substring(0, 150)}${(data.description?.length || 0) > 150 ? '...' : ''}\n` +
+      `📸 Photo: ${data.mediaUrl ? 'Yes ✅' : 'No ❌'}\n\n` +
+      `Submit this complaint? / यह शिकायत दर्ज करें?`;
+
+    // Try interactive buttons first, fall back to text
+    const btnResult = await WhatsAppProvider.sendInteractiveButtons(from, summaryText, [
+      { id: 'confirm_yes', title: '✅ Submit / हाँ' },
+      { id: 'confirm_no', title: '❌ Cancel / नहीं' },
+    ]);
+    await this.logOutboundMessage(from, summaryText, session._id as mongoose.Types.ObjectId, btnResult.messageId);
   }
 
   private static async handleConfirmation(from: string, session: IWhatsAppSession, text: string): Promise<void> {
     const upper = text.toUpperCase();
 
-    if (upper === 'YES' || upper === 'Y' || upper === 'CONFIRM') {
+    // Support interactive button IDs, English, and Hindi/Hinglish
+    const isYes = ['YES', 'Y', 'CONFIRM', 'CONFIRM_YES', 'HAAN', 'HA', 'JI'].includes(upper);
+    const isNo = ['NO', 'N', 'CANCEL', 'CONFIRM_NO', 'NAHI', 'NHIN', 'RADD'].includes(upper);
+
+    if (isYes) {
       try {
         const complaint = await this.createComplaintFromSession(session);
         await this.closeSession(session);
@@ -424,27 +499,30 @@ export class WhatsAppService {
         });
 
         await this.sendAndLog(from, session,
-          `✅ *Complaint Registered Successfully!*\n\n` +
+          `✅ *Complaint Registered Successfully!*\n` +
+          `✅ *शिकायत सफलतापूर्वक दर्ज हो गई!*\n\n` +
           `📌 Reference Number: *${complaint.referenceNumber}*\n\n` +
           `Your complaint has been automatically routed to the responsible department. ` +
-          `You will receive status updates here on WhatsApp.\n\n` +
-          `To track: Type *TRACK ${complaint.referenceNumber}*\n` +
+          `You will receive status updates here on WhatsApp.\n` +
+          `आपकी शिकायत संबंधित विभाग को भेज दी गई है।\n\n` +
+          `To track / ट्रैक करें: Type *TRACK ${complaint.referenceNumber}*\n` +
           `To file another: Type *Hi*`,
         );
       } catch (error) {
         logger.error('[WhatsApp] Complaint creation failed:', error);
         await this.sendAndLog(from, session,
-          '❌ Sorry, there was an error submitting your complaint. Please try again.',
+          '❌ Sorry, there was an error submitting your complaint. Please try again.\n' +
+          'क्षमा करें, शिकायत दर्ज करने में त्रुटि हुई। कृपया पुनः प्रयास करें।',
         );
       }
-    } else if (upper === 'NO' || upper === 'N' || upper === 'CANCEL') {
+    } else if (isNo) {
       await this.closeSession(session);
       await this.sendAndLog(from, session,
-        '❌ Complaint cancelled. Send *Hi* to start over.',
+        '❌ Complaint cancelled / शिकायत रद्द। Send *Hi* to start over.',
       );
     } else {
       await this.sendAndLog(from, session,
-        '⚠️ Please reply *YES* to confirm or *NO* to cancel.',
+        '⚠️ Please reply *YES* / *HAAN* to confirm or *NO* / *NAHI* to cancel.',
       );
     }
   }
@@ -453,13 +531,14 @@ export class WhatsAppService {
 
   private static async handleHelp(from: string, session: IWhatsAppSession): Promise<void> {
     await this.sendAndLog(from, session,
-      `🏛️ *Delhi CM Governance Platform — Commands*\n\n` +
-      `📝 *Hi* — File a new grievance\n` +
-      `📊 *STATUS* — View your complaints\n` +
-      `🔍 *TRACK <REF>* — Track a complaint by reference number\n` +
-      `📋 *MY COMPLAINTS* — List all your complaints\n` +
-      `❓ *HELP* — Show this help message\n` +
-      `❌ *CANCEL* — Cancel current operation`,
+      `🏛️ *Delhi CM Governance Platform — Commands*\n` +
+      `🏛️ *दिल्ली CM शिकायत प्लेटफ़ॉर्म — कमांड*\n\n` +
+      `📝 *Hi* — File a new grievance / नई शिकायत दर्ज करें\n` +
+      `📊 *STATUS / STHITI* — View your complaints / अपनी शिकायतें देखें\n` +
+      `🔍 *TRACK <REF>* — Track a complaint / शिकायत ट्रैक करें\n` +
+      `📋 *MY COMPLAINTS / MERI SHIKAYAT* — List all complaints\n` +
+      `❓ *HELP / MADAD* — Show this help message / सहायता\n` +
+      `❌ *CANCEL / RADD* — Cancel current operation / रद्द करें`,
     );
   }
 
@@ -532,6 +611,7 @@ export class WhatsAppService {
 
     // Find or create citizen user by phone
     let citizen = await User.findOne({ phone: this.normalizePhone(session.phoneNumber) });
+    let isNewCitizen = false;
 
     if (!citizen) {
       const names = (data.name || 'WhatsApp User').split(' ');
@@ -552,30 +632,41 @@ export class WhatsAppService {
           notificationChannels: ['whatsapp'],
         },
       });
+      isNewCitizen = true;
     }
 
     // Link citizen to session
     session.citizenId = citizen._id as mongoose.Types.ObjectId;
     await session.save();
 
-    // Create complaint using the shared service
-    const complaint = await ComplaintService.createComplaint({
-      citizenId: (citizen._id as unknown as string),
-      title: `${data.category} issue in ${data.ward || 'Delhi'}`,
-      description: data.description || '',
-      category: data.category || 'Water Supply',
-      latitude: data.latitude || 28.6139,
-      longitude: data.longitude || 77.2090,
-      address: {
-        ward: data.ward,
-      },
-      media: data.mediaUrl
-        ? [{ type: 'image' as const, url: data.mediaUrl, mimeType: 'image/jpeg', size: 0 }]
-        : [],
-      source: ComplaintSource.WHATSAPP,
-    });
+    try {
+      // Create complaint using the shared service
+      const complaint = await ComplaintService.createComplaint({
+        citizenId: (citizen._id as unknown as string),
+        title: `${data.category} issue in ${data.ward || 'Delhi'}`,
+        description: data.description || '',
+        category: data.category || 'Water Supply',
+        latitude: data.latitude || 28.6139,
+        longitude: data.longitude || 77.2090,
+        address: {
+          ward: data.ward,
+        },
+        media: data.mediaUrl
+          ? [{ type: 'image' as const, url: data.mediaUrl, mimeType: 'image/jpeg', size: 0 }]
+          : [],
+        source: ComplaintSource.WHATSAPP,
+      });
 
-    return complaint;
+      return complaint;
+    } catch (error) {
+      // Manual rollback if complaint creation fails
+      if (isNewCitizen && citizen) {
+        await User.deleteOne({ _id: citizen._id });
+        session.citizenId = undefined as any;
+        await session.save();
+      }
+      throw error;
+    }
   }
 
   // ── Utilities ─────────────────────────────────────────────
@@ -636,5 +727,18 @@ export class WhatsAppService {
     }
 
     return closest.name;
+  }
+
+  /**
+   * Cleanup sessions that have been abandoned for more than 1 hour.
+   * Can be called by a cron job or background worker.
+   */
+  static async cleanupStagnantSessions(): Promise<number> {
+    const oneHourAgo = new Date(Date.now() - 3600000);
+    const result = await WhatsAppSession.updateMany(
+      { isActive: true, lastMessageAt: { $lt: oneHourAgo } },
+      { $set: { isActive: false, currentConversationState: ConversationState.COMPLETE } }
+    );
+    return result.modifiedCount;
   }
 }

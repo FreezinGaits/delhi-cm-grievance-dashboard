@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, Fragment } from 'react';
 
 interface OfficerRanking {
   _id: string;
@@ -97,12 +97,12 @@ export default function RankingsPage() {
   return (
     <div className="animate-fade-in">
       {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-        <div>
-          <h1 style={{ fontSize: '1.75rem', fontWeight: 800, marginBottom: '4px' }}>🏅 Officer Accountability Rankings</h1>
-          <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>Weighted performance scores across 7 metrics</p>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '24px', flexWrap: 'wrap', gap: '12px' }}>
+        <div style={{ minWidth: 0 }}>
+          <h1 style={{ fontSize: 'clamp(1.25rem, 3vw, 1.75rem)', fontWeight: 800, marginBottom: '4px' }}>🏅 Officer Accountability Rankings</h1>
+          <p style={{ color: 'var(--text-muted)', fontSize: 'clamp(0.75rem, 1.5vw, 0.9rem)' }}>Weighted performance scores across 7 metrics</p>
         </div>
-        <button onClick={triggerCompute} className="btn btn-primary" disabled={computing}>
+        <button onClick={triggerCompute} className="btn btn-primary" disabled={computing} style={{ flexShrink: 0 }}>
           {computing ? '⏳ Computing...' : '🔄 Recompute Scores'}
         </button>
       </div>
@@ -166,7 +166,8 @@ export default function RankingsPage() {
         </div>
       ) : (
         <div className="glass-card" style={{ overflow: 'hidden' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+            <table style={{ width: '100%', minWidth: '700px', borderCollapse: 'collapse' }}>
             <thead>
               <tr style={{ borderBottom: '1px solid var(--border-color)' }}>
                 {['#', 'Officer', 'Department', 'Score', 'Category', 'Trend', 'Cases', ''].map(h => (
@@ -178,9 +179,19 @@ export default function RankingsPage() {
               {rankings.map((r) => {
                 const cat = categoryConfig[r.category] || categoryConfig.good;
                 const isExpanded = expanded === r._id;
+                
+                let formattedName = 'Unknown';
+                if (r.officerId?.name) {
+                  if (typeof r.officerId.name === 'string') {
+                    formattedName = r.officerId.name;
+                  } else if (typeof r.officerId.name === 'object') {
+                    formattedName = `${(r.officerId.name as any).first || ''} ${(r.officerId.name as any).last || ''}`.trim();
+                  }
+                }
+
                 return (
-                  <>
-                    <tr key={r._id} style={{ borderBottom: '1px solid var(--border-color)', cursor: 'pointer', transition: 'background 0.15s' }}
+                  <Fragment key={r._id}>
+                    <tr style={{ borderBottom: '1px solid var(--border-color)', cursor: 'pointer', transition: 'background 0.15s' }}
                       onClick={() => setExpanded(isExpanded ? null : r._id)}
                       onMouseEnter={e => (e.currentTarget.style.background = 'var(--bg-card-hover)')}
                       onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}>
@@ -188,7 +199,7 @@ export default function RankingsPage() {
                         {r.globalRank <= 3 ? ['🥇', '🥈', '🥉'][r.globalRank - 1] : `#${r.globalRank}`}
                       </td>
                       <td style={{ padding: '14px 12px' }}>
-                        <div style={{ fontWeight: 600 }}>{r.officerId?.name || 'Unknown'}</div>
+                        <div style={{ fontWeight: 600 }}>{formattedName}</div>
                         <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{r.officerId?.email || ''}</div>
                       </td>
                       <td style={{ padding: '14px 12px', color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
@@ -230,7 +241,7 @@ export default function RankingsPage() {
                     {isExpanded && (
                       <tr key={`${r._id}-detail`}>
                         <td colSpan={8} style={{ padding: '0 12px 16px 12px', background: 'var(--bg-card)' }}>
-                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', padding: '16px', borderRadius: '12px', background: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))', gap: '16px', padding: '16px', borderRadius: '12px', background: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}>
                             <div>
                               <h4 style={{ fontSize: '0.85rem', fontWeight: 700, marginBottom: '12px', color: 'var(--text-secondary)' }}>Performance Breakdown</h4>
                               <ScoreBar value={r.metrics.resolutionRate} label="Resolution Rate (25%)" color="#6ee7b7" />
@@ -264,11 +275,12 @@ export default function RankingsPage() {
                         </td>
                       </tr>
                     )}
-                  </>
+                  </Fragment>
                 );
               })}
             </tbody>
-          </table>
+            </table>
+          </div>
         </div>
       )}
     </div>
