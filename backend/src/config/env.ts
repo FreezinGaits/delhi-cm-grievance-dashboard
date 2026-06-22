@@ -64,7 +64,7 @@ function getEnvBool(key: string, defaultValue?: boolean): boolean {
 
 export const env: EnvConfig = {
   NODE_ENV: getEnvVar('NODE_ENV', 'development'),
-  PORT: getEnvNumber('BACKEND_PORT', 5000),
+  PORT: process.env.PORT ? parseInt(process.env.PORT, 10) : getEnvNumber('BACKEND_PORT', 5000),
   CORS_ORIGIN: getEnvVar('CORS_ORIGIN', 'http://localhost:3000'),
 
   MONGODB_URI: getEnvVar('MONGODB_URI', 'mongodb://admin:password123@localhost:27017/grievance_db?authSource=admin'),
