@@ -143,7 +143,6 @@ const DepartmentSchema = new Schema<IDepartment>(
 );
 
 // Indexes
-DepartmentSchema.index({ code: 1 }, { unique: true });
 DepartmentSchema.index({ categories: 1 });
 DepartmentSchema.index({ isActive: 1 });
 DepartmentSchema.index({ isDeleted: 1 });

@@ -5,7 +5,7 @@
   "main": "dist/app.js",
   "scripts": {
     "dev": "tsx watch src/app.ts",
-    "build": "tsc --ignoreDeprecations 6.0 || tsc --ignoreDeprecations 5.0",
+    "build": "tsc --ignoreDeprecations 5.0",
     "start": "node dist/app.js",
     "lint": "eslint src/ --ext .ts",
     "lint:fix": "eslint src/ --ext .ts --fix",

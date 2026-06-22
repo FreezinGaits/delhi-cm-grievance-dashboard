@@ -109,7 +109,6 @@ WhatsAppMessageSchema.index({ sender: 1, timestamp: -1 });
 WhatsAppMessageSchema.index({ receiver: 1, timestamp: -1 });
 WhatsAppMessageSchema.index({ sessionId: 1, timestamp: 1 });
 WhatsAppMessageSchema.index({ direction: 1, timestamp: -1 });
-WhatsAppMessageSchema.index({ waMessageId: 1 });
 
 export const WhatsAppMessage = mongoose.model<IWhatsAppMessage>(
   'WhatsAppMessage',

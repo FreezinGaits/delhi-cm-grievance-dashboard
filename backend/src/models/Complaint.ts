@@ -130,7 +130,6 @@ const ComplaintSchema = new Schema<IComplaint>(
       type: String,
       required: true,
       unique: true,
-      index: true,
     },
     citizenId: {
       type: Schema.Types.ObjectId,
@@ -328,7 +327,6 @@ const ComplaintSchema = new Schema<IComplaint>(
 );
 
 // Indexes for performance
-ComplaintSchema.index({ referenceNumber: 1 }, { unique: true });
 ComplaintSchema.index({ citizenId: 1, status: 1 });
 ComplaintSchema.index({ status: 1, priority: 1 });
 ComplaintSchema.index({ assignedDepartment: 1, status: 1 });
