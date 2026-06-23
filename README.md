@@ -1,324 +1,226 @@
-# 🏛️ Delhi Governance Intelligence Platform
+# 🏛️ Delhi Governance Intelligence Platform (DGIP)
 
-> CM Command Center — Real-time Civic Operations Intelligence
+> **CM Command Center** — Real-time Civic Operations Intelligence, AI-Powered Routing, Spatial DBSCAN Clustering, and Citizen-Veto Accountability for the Delhi Chief Minister's Office.
 
 [![CI Pipeline](https://github.com/FreezinGaits/delhi-cm-grievance-dashboard/actions/workflows/ci.yml/badge.svg)](https://github.com/FreezinGaits/delhi-cm-grievance-dashboard/actions)
 
-## 🎯 Overview
+---
 
-A production-grade, full-stack governance intelligence platform designed for the Delhi Chief Minister's Office. The platform enables end-to-end complaint lifecycle management — from multi-channel citizen intake (Web + WhatsApp) to AI-powered routing, DBSCAN incident clustering, officer accountability scoring, CM spot directives, and geospatial analytics with field visit mode.
+## 🌟 The Vision
 
-### Primary Differentiators
+Standard grievance portals suffer from three fatal flaws:
 
-| Feature | Description |
-|---------|------------|
-| 📱 **WhatsApp-First Intake** | Citizens file grievances entirely via WhatsApp — no website needed |
-| 🔗 **Master Incident Clustering** | DBSCAN spatial clustering merges duplicate reports into master incidents |
-| 🏅 **Accountability Scores** | Weighted 0-100 officer performance scores with rankings |
-| 📋 **CM Spot Directives** | Issue directives during field visits with deadline tracking |
-| 🛡️ **Field Visit Mode** | GPS-powered nearby complaint view for on-ground inspections |
-| ✅ **Citizen Veto** | No complaint closes until citizen confirms resolution |
-| 🚨 **Critical Alert Engine** | Life-threatening complaints bypass queues with 4-hour SLA |
-| 📊 **Officer Resource Ledger** | Real-time workload monitoring and intelligent re-routing |
-| 🔒 **Anti-Fraud by Design** | EXIF geotagging validation and complete audit trail |
+1. **Desk-Based Fraud:** Officers mark complaints as "resolved" without doing the actual work on the ground.
+2. **Duplicate Clutter:** One pothole gets reported by 50 different citizens, clogging the system and wasting public funds.
+3. **No Leadership Visibility:** Decision-makers lack real-time geospatial intelligence to spot systemic issues and hold officers accountable.
 
-## 🏗️ Architecture
-
-```
-┌──────────────────────────────────────────────────────────────────┐
-│                     INTAKE SOURCES                                │
-│  🌐 Website   📱 WhatsApp   📞 IVR (future)   📢 Social (future) │
-├──────────────────────────────────────────────────────────────────┤
-│                    FRONTEND (Next.js 15)                          │
-│  Landing │ Login │ CM Command Center │ Officer Kanban │ Citizen   │
-├──────────────────────────────────────────────────────────────────┤
-│                    BACKEND (Express + TS)                         │
-│  Auth │ Complaints │ WhatsApp │ Directives │ Governance │ Workers│
-├──────────────┬──────────────┬──────────────┬─────────────────────┤
-│   MongoDB 7  │   Redis 7    │    MinIO     │       BullMQ        │
-│  (Database)  │   (Cache)    │  (Storage)   │  (Queues/Workers)   │
-└──────────────┴──────────────┴──────────────┴─────────────────────┘
-```
-
-## 🛠️ Tech Stack
-
-| Layer | Technology |
-|-------|-----------|
-| **Frontend** | Next.js 15, React 19, TypeScript, Tailwind CSS, ShadCN |
-| **Backend** | Express.js, TypeScript, Mongoose ODM |
-| **Database** | MongoDB 7 with geospatial indexes |
-| **Cache** | Redis 7 (session state, rate limiting) |
-| **Queue** | BullMQ (6 worker queues) |
-| **Storage** | MinIO (S3-compatible file storage) |
-| **Auth** | JWT (access + refresh), OTP, bcrypt |
-| **WhatsApp** | Meta WhatsApp Cloud API (mock mode supported) |
-| **DevOps** | Docker Compose, GitHub Actions CI |
-| **Code Quality** | ESLint, Prettier, Husky, Commitlint |
-
-## 📁 Project Structure
-
-```
-delhi-cm-grievance-dashboard/
-├── backend/                        # Express API server
-│   ├── src/
-│   │   ├── config/                # Database, Redis, MinIO, env
-│   │   ├── controllers/          # Request handlers
-│   │   ├── middleware/           # Auth, RBAC, rate limiting, errors
-│   │   ├── models/               # Mongoose schemas (15 models)
-│   │   │   ├── Complaint.ts      # Core complaint with clustering/directives
-│   │   │   ├── WhatsAppSession.ts # WhatsApp conversation state
-│   │   │   ├── WhatsAppMessage.ts # Full message audit trail
-│   │   │   ├── Directive.ts      # CM spot directives
-│   │   │   ├── OfficerScore.ts   # Accountability engine scores
-│   │   │   └── ...
-│   │   ├── routes/               # API route definitions
-│   │   │   ├── whatsapp.routes.ts # Webhook + test endpoints
-│   │   │   ├── directive.routes.ts # CM directive lifecycle
-│   │   │   ├── governance.routes.ts # Clustering + accountability
-│   │   │   └── ...
-│   │   ├── services/             # Business logic layer
-│   │   │   ├── whatsapp.service.ts     # Conversation state engine
-│   │   │   ├── whatsapp.provider.ts    # Cloud API / mock provider
-│   │   │   ├── clustering.service.ts   # DBSCAN spatial clustering
-│   │   │   ├── accountability.service.ts # Officer scoring engine
-│   │   │   ├── directive.service.ts    # CM directive lifecycle
-│   │   │   └── ...
-│   │   ├── workers/              # BullMQ queue workers
-│   │   ├── scripts/              # Seed & migration scripts
-│   │   └── utils/                # Logger, helpers
-│   └── Dockerfile
-├── frontend/                      # Next.js application
-│   ├── src/app/
-│   │   ├── dashboard/
-│   │   │   ├── cm/               # CM analytics & command center
-│   │   │   ├── officer/          # Kanban board & evidence upload
-│   │   │   ├── citizen/          # Complaint submission & tracking
-│   │   │   └── admin/            # User & department management
-│   │   ├── login/                # Multi-mode authentication
-│   │   └── track/                # Public complaint tracker
-│   └── Dockerfile
-├── docs/                          # Architecture documentation
-│   ├── WHATSAPP_ARCHITECTURE.md
-│   ├── WHATSAPP_API.md
-│   ├── WHATSAPP_SEQUENCE_DIAGRAM.md
-│   ├── WHATSAPP_DEPLOYMENT.md
-│   ├── CLUSTERING_ARCHITECTURE.md
-│   ├── ACCOUNTABILITY_ENGINE.md
-│   ├── DIRECTIVES_ARCHITECTURE.md
-│   ├── GOVERNANCE_ARCHITECTURE.md
-│   └── ...
-├── docker-compose.yml             # Full-stack orchestration
-└── .github/workflows/             # CI pipeline
-```
-
-## 🚀 Quick Start
-
-### Prerequisites
-- Node.js 20+
-- Docker & Docker Compose (for infrastructure)
-- MongoDB 7 (local or Docker)
-
-### Development Setup
-
-```bash
-# Clone
-git clone https://github.com/FreezinGaits/delhi-cm-grievance-dashboard.git
-cd delhi-cm-grievance-dashboard
-
-# Copy environment config
-cp .env.example .env
-
-# Install dependencies
-npm install --ignore-scripts
-cd backend && npm install && cd ..
-cd frontend && npm install && cd ..
-
-# Start infrastructure (MongoDB, Redis, MinIO)
-docker compose up -d mongodb redis minio
-
-# Seed the database
-cd backend && npx tsx src/scripts/seed.ts && cd ..
-
-# Start development servers
-npm run dev:backend   # → http://localhost:5000
-npm run dev:frontend  # → http://localhost:3000
-```
-
-### Docker (Full Stack)
-
-```bash
-docker compose up --build
-```
-
-## 🔐 Demo Credentials
-
-| Role | Email | Password |
-|------|-------|----------|
-| **CM** | cm@delhi.gov.in | Password123! |
-| **Admin** | admin@delhi.gov.in | Password123! |
-| **Officer** | rajesh.verma@delhi.gov.in | Password123! |
-| **Citizen** | rohit.kumar@gmail.com | Password123! |
-
-## 📡 API Endpoints
-
-### Authentication
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | `/api/v1/auth/register` | Register citizen |
-| POST | `/api/v1/auth/login` | Email/phone login |
-| POST | `/api/v1/auth/login/otp/request` | Request OTP |
-| POST | `/api/v1/auth/login/otp/verify` | Verify OTP |
-| POST | `/api/v1/auth/refresh` | Refresh token |
-| GET | `/api/v1/auth/me` | Current user profile |
-
-### Complaints
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | `/api/v1/complaints` | Submit complaint |
-| GET | `/api/v1/complaints` | List (with filters) |
-| GET | `/api/v1/complaints/:id` | Get details |
-| GET | `/api/v1/complaints/track/:ref` | Public tracking |
-| PATCH | `/api/v1/complaints/:id/status` | Update status |
-| POST | `/api/v1/complaints/:id/confirm` | Citizen confirms |
-| POST | `/api/v1/complaints/:id/reject` | Citizen rejects |
-
-### WhatsApp Intake (Phase A)
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/webhooks/whatsapp` | Meta verification handshake |
-| POST | `/webhooks/whatsapp` | Incoming message webhook |
-| POST | `/webhooks/whatsapp/test` | Dev: Simulate WhatsApp message |
-| GET | `/webhooks/whatsapp/sessions` | View active sessions |
-| GET | `/webhooks/whatsapp/messages/:phone` | Message audit trail |
-
-### CM Dashboard
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/api/v1/cm/dashboard` | Full analytics summary |
-| GET | `/api/v1/cm/heatmap` | Geospatial complaint data |
-| GET | `/api/v1/cm/nearby-complaints` | Field visit mode |
-| GET | `/api/v1/cm/officer-ledger` | Officer workload data |
-| GET | `/api/v1/cm/alerts` | Critical alerts |
-
-### CM Directives (Phase D)
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | `/api/v1/directives` | Issue spot directive |
-| GET | `/api/v1/directives` | List all directives |
-| GET | `/api/v1/directives/stats` | Dashboard stats |
-| GET | `/api/v1/directives/mine` | Officer's assigned directives |
-| PATCH | `/api/v1/directives/:id/acknowledge` | Acknowledge directive |
-| PATCH | `/api/v1/directives/:id/start` | Start work |
-| PATCH | `/api/v1/directives/:id/complete` | Complete with evidence |
-
-### Governance Intelligence (Phase B + C)
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/api/v1/governance/officer-rankings` | Performance rankings |
-| GET | `/api/v1/governance/officer-score/:id` | Officer score history |
-| POST | `/api/v1/governance/compute-scores` | Trigger score computation |
-| GET | `/api/v1/governance/clusters` | Active incident clusters |
-| GET | `/api/v1/governance/clusters/:id` | Cluster details |
-| POST | `/api/v1/governance/run-clustering` | Trigger DBSCAN clustering |
-
-### Officer Workflow
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/api/v1/officers/dashboard` | Kanban board data |
-| PATCH | `/api/v1/officers/complaints/:id/accept` | Accept assignment |
-| POST | `/api/v1/officers/complaints/:id/evidence` | Upload proof |
-
-## 🗃️ Database Models
-
-15 Mongoose models with comprehensive indexing:
-
-- **User** — Multi-role (Citizen, Officer, Dept Head, Admin, CM) with OTP & brute force protection
-- **Department** — Routing rules, SLA defaults, jurisdiction mapping
-- **Complaint** — Core entity with geospatial, SLA, clustering, directives, evidence, citizen veto
-- **ComplaintHistory** — Full audit trail for every status change
-- **ComplaintCluster** — DBSCAN spatial clustering for duplicate detection
-- **WhatsAppSession** — Conversation state for WhatsApp intake flow
-- **WhatsAppMessage** — Full audit trail of all WhatsApp messages
-- **Directive** — CM spot directives with lifecycle tracking
-- **OfficerScore** — Weighted accountability scores (0-100) with rankings
-- **Assignment** — Officer-complaint assignment tracking
-- **Notification** — Multi-channel (SMS, Email, WhatsApp, Push)
-- **AuditLog** — System-wide action logging
-- **OfficerMetrics** — Performance and workload tracking
-- **DepartmentMetrics** — Department-level analytics
-- **VisitLog** — CM field visit sessions
-
-## ⚡ BullMQ Worker Queues
-
-| Queue | Schedule | Purpose |
-|-------|----------|---------|
-| `whatsapp-incoming` | Real-time | Process incoming WhatsApp messages |
-| `whatsapp-media` | Real-time | Download media attachments |
-| `whatsapp-notify` | Real-time | Send outbound status notifications |
-| `clustering` | Every 15 min | DBSCAN spatial complaint clustering |
-| `accountability` | Daily midnight | Compute officer performance scores |
-| `directive-check` | Hourly | Mark overdue directives |
-
-## 🔒 Security Features
-
-- JWT access/refresh token rotation
-- bcrypt password hashing (12 rounds)
-- Rate limiting (general, auth, OTP, complaint submission)
-- Role-Based Access Control (5 roles)
-- Account lockout after 5 failed attempts
-- OTP with attempt limiting and expiry
-- Soft delete pattern (data preservation)
-- Complete audit logging
-- CORS, Helmet, Compression middleware
-- WhatsApp webhook signature verification
-
-## 📊 Complaint Lifecycle
-
-```
-Submitted → Under Review → Assigned → In Progress
-    → Provisionally Resolved → [Citizen Confirms] → Resolved → Closed
-    → Provisionally Resolved → [Citizen Rejects] → Escalated → Re-assigned
-```
-
-## 📱 WhatsApp Flow
-
-```
-Citizen sends "Hi" → Bot asks name → Bot asks location (GPS pin)
-→ Bot asks category → Bot asks description → Bot asks for photo (optional)
-→ Summary → Confirm → Complaint created (same schema as web)
-→ Reference number sent back
-```
-
-## 🧩 Mock Mode
-
-All external integrations operate in **mock mode** when credentials are absent:
-- **WhatsApp**: Messages logged to console with `[WhatsApp Mock]` prefix
-- **SMS**: OTP bypassed in development
-- **Storage**: Falls back to local filesystem if MinIO unavailable
-
-No real API keys are required for development.
-
-## 📚 Documentation
-
-| Document | Description |
-|----------|-------------|
-| [WHATSAPP_ARCHITECTURE.md](docs/WHATSAPP_ARCHITECTURE.md) | WhatsApp intake system design |
-| [WHATSAPP_API.md](docs/WHATSAPP_API.md) | Webhook API reference |
-| [WHATSAPP_SEQUENCE_DIAGRAM.md](docs/WHATSAPP_SEQUENCE_DIAGRAM.md) | Interaction sequence diagrams |
-| [WHATSAPP_DEPLOYMENT.md](docs/WHATSAPP_DEPLOYMENT.md) | WhatsApp deployment guide |
-| [CLUSTERING_ARCHITECTURE.md](docs/CLUSTERING_ARCHITECTURE.md) | DBSCAN clustering design |
-| [ACCOUNTABILITY_ENGINE.md](docs/ACCOUNTABILITY_ENGINE.md) | Officer scoring methodology |
-| [DIRECTIVES_ARCHITECTURE.md](docs/DIRECTIVES_ARCHITECTURE.md) | CM directives lifecycle |
-| [GOVERNANCE_ARCHITECTURE.md](docs/GOVERNANCE_ARCHITECTURE.md) | Unified platform vision |
-| [SYSTEM_ARCHITECTURE.md](docs/SYSTEM_ARCHITECTURE.md) | Overall system architecture |
-| [API_SPECIFICATION.md](docs/API_SPECIFICATION.md) | Full API spec |
-| [DATABASE_DESIGN.md](docs/DATABASE_DESIGN.md) | Database schema design |
-| [SECURITY_ARCHITECTURE.md](docs/SECURITY_ARCHITECTURE.md) | Security measures |
-
-## 📄 License
-
-This project is built as a demonstration of governance technology capabilities.
+**DGIP** solves these challenges by introducing a **WhatsApp-first intake engine**, **geospatial DBSCAN clustering**, **on-the-go CM field directives**, and a strict **Citizen Veto** loop where no ticket is closed until the citizen verifies the resolution with evidence.
 
 ---
 
-Built with ❤️ for better governance
+## 🚀 2-Minute Judge Quick Start (Zero-Config Mock Mode)
+
+We have built a robust **Mock Mode** for all external integrations. If credentials (like Meta WhatsApp API, SMS Gateway, or MinIO AWS Storage) are left empty, the application runs entirely locally with zero configuration. No external account setup is required.
+
+### Prerequisites
+
+- **Node.js** v20 or higher
+- **Docker Desktop** (to run the local Redis queue engine)
+- **MongoDB** (running locally on port `27017` or via Docker)
+
+### Installation & Run
+
+1. **Clone the Repository:**
+
+   ```bash
+   git clone https://github.com/FreezinGaits/delhi-cm-grievance-dashboard.git
+   cd delhi-cm-grievance-dashboard
+   ```
+
+2. **Prepare Environment Settings:**
+
+   ```bash
+   cp .env.example .env
+   ```
+
+   _(Note: The default `.env` is pre-configured to use your local Redis container and local MongoDB)._
+
+3. **Install Dependencies:**
+
+   ```bash
+   npm install --ignore-scripts
+   cd backend && npm install && cd ..
+   cd frontend && npm install && cd ..
+   ```
+
+4. **Start the Infrastructure:**
+   Ensure Docker Desktop is open, then start the local Redis cache/queue:
+
+   ```bash
+   docker compose up -d redis
+   ```
+
+5. **Seed the Database:**
+   Populate local MongoDB with departments, dummy officers, and sample complaints:
+
+   ```bash
+   cd backend && npx tsx src/scripts/seed.ts && cd ..
+   ```
+
+6. **Launch the Application:**
+   Start the frontend and backend servers concurrently:
+   ```bash
+   npm run dev
+   ```
+   - **Frontend Command Center:** [http://localhost:3005](http://localhost:3005) (or `3000`)
+   - **Backend API Server:** [http://localhost:5000](http://localhost:5000)
+
+---
+
+## 🎭 Step-by-Step Judge Walkthrough
+
+Use these demo accounts to explore the unified workflow:
+
+| Role        | Email                       | Password       | What to Test                                                                                                  |
+| ----------- | --------------------------- | -------------- | ------------------------------------------------------------------------------------------------------------- |
+| **Citizen** | `rohit.kumar@gmail.com`     | `Password123!` | Submit a new complaint with location Karol Bagh; track its status; veto or confirm resolution.                |
+| **CM**      | `cm@delhi.gov.in`           | `Password123!` | View real-time Heatmaps, track Officer Rankings, launch Field Visit Mode, and issue Spot Directives.          |
+| **Officer** | `rajesh.verma@delhi.gov.in` | `Password123!` | View assigned complaints on the Kanban board, mark as "In Progress", and upload evidence to mark as resolved. |
+
+---
+
+## 🗺️ System Architecture
+
+```mermaid
+graph TD
+    %% Citizen Intake
+    CitizenWeb[🌐 Citizen Web Portal] -->|API Request| ExpressBackend
+    CitizenWA[📱 WhatsApp Bot] -->|Webhook| ExpressBackend
+
+    %% Core Backend Server
+    subgraph Backend [Express + TypeScript Server]
+        ExpressBackend[API Router / Controller]
+
+        %% Core Engines
+        RouteEngine[🛣️ Rule-Based Router]
+        ClusteringEngine[🧠 DBSCAN Clustering]
+        AccountabilityEngine[🏅 Scoring Engine]
+
+        ExpressBackend --> RouteEngine
+        ExpressBackend --> ClusteringEngine
+        ExpressBackend --> AccountabilityEngine
+    end
+
+    %% Database & Cache
+    ExpressBackend -->|Mongoose ODM| MongoDB[(MongoDB 7 <br> Geo-Indexes)]
+    ExpressBackend -->|BullMQ Queue| RedisClient[(Redis 7 <br> Local Queue)]
+    ExpressBackend -->|Uploads| LocalFS[📁 Filesystem / MinIO]
+
+    %% Workers
+    subgraph Workers [Active BullMQ Workers]
+        ClusteringWorker[Clustering Worker]
+        ScoreWorker[Score Worker]
+        DirectivesWorker[Directives Worker]
+        WhatsAppWorker[WhatsApp Worker]
+    end
+    RedisClient --> Workers
+    Workers -->|Update State| MongoDB
+
+    %% Dashboards
+    ExpressBackend -->|JSON API| CMDashboard[🏛️ CM Command Center]
+    ExpressBackend -->|JSON API| OfficerKanban[📋 Officer Kanban Board]
+```
+
+---
+
+## 🧠 Core Algorithmic Engines
+
+### 1. WhatsApp State Machine (Stateful Intake)
+
+Citizens do not need to download apps. The Meta WhatsApp integration uses a robust state engine to guide citizens step-by-step:
+
+- **State 0 (Idle):** Send "Hi" or "Madad" to start.
+- **State 1 (Name):** Capture citizen's name.
+- **State 2 (Location):** Share GPS pin. Wards are automatically mapped using geo-boundaries (Karol Bagh, Dwarka, etc.) with clean text fallback.
+- **State 3 (Category):** Pick category (Water Leak, Pot Hole, Electricity, etc.).
+- **State 4 (Details):** Capture voice/text details and upload media proof.
+- **State 5 (Confirmation):** Review details and issue the reference tracking ID.
+
+### 2. DBSCAN Spatial Clustering
+
+To prevent duplicate tickets from clogging the system, a background queue worker runs a DBSCAN (Density-Based Spatial Clustering of Applications with Noise) algorithm:
+
+- **Parameters:** Searches within a radius of `100 meters` and checks for text similarity (using Levenshtein distance/TF-IDF matches on description).
+- **Consolidation:** If duplicates are found, they are merged under a **Master Incident**.
+- **Integrity:** The individual citizens are linked as subscribers to the Master Ticket. When the officer resolves the Master Ticket, all subscribed citizens are notified simultaneously.
+
+### 3. The Officer Accountability Score
+
+To remove subjectivity, officer performance is mathematically rated from `0 to 100` using a composite score calculated daily at midnight:
+
+$$\text{Score} = (W_1 \times \text{SLA Compliance Rate}) + (W_2 \times \text{Citizen Approval Rate}) - (W_3 \times \text{Citizen Veto Rate}) - (W_4 \times \text{Workload Penalty})$$
+
+- **SLA Compliance (40%):** Percentage of tickets resolved within the department's SLA window.
+- **Citizen Approval (40%):** Rate of resolutions confirmed by citizens.
+- **Citizen Veto (20% penalty):** Substantial penalty applied when citizens reject the officer's resolution proof and reopen tickets.
+- **Overload Penalty:** Small deduction applied if the officer exceeds their resource bandwidth capacity.
+
+### 4. Field Visit Mode & CM Spot Directives
+
+When the CM is on on-ground inspections, the dashboard shifts into **Field Visit Mode**:
+
+- **Live GPS Radius:** Identifies open complaints within `500m`, `1km`, or `2km` of the CM's location.
+- **Spot Directives:** The CM can tap on a nearby complaint or create a new one, assigning it directly to the department head on-spot with a strict countdown timer (e.g., "Fix this manhole in 24 hours").
+- **SLA bypass:** Spot directives are routed to a high-priority queue and trigger instant notifications.
+
+---
+
+## 📡 API Reference & Architecture Documentation
+
+All features and schemas are fully documented in the `docs/` folder:
+
+- 📚 **[System Architecture](docs/SYSTEM_ARCHITECTURE.md)** — Detailed multi-tier network and data flow architecture.
+- 🗃️ **[Database Design](docs/DATABASE_DESIGN.md)** — Detailed MongoDB schema structures for all 15 models.
+- 📶 **[API Specifications](docs/API_SPECIFICATION.md)** — Full request/response definitions for every endpoint.
+- 📱 **[WhatsApp Intake Architecture](docs/WHATSAPP_ARCHITECTURE.md)** — State machine mechanics and sequence diagrams.
+- 🧠 **[DBSCAN Clustering Engine](docs/CLUSTERING_ARCHITECTURE.md)** — Mathematical breakdown of geospatial duplicate merging.
+- 🏅 **[Accountability Scoring Engine](docs/ACCOUNTABILITY_ENGINE.md)** — Complete scoring algorithm weights and calculations.
+- 🔒 **[Security Architecture](docs/SECURITY_ARCHITECTURE.md)** — Implementation of RBAC, rate-limiting, and brute force protection.
+
+---
+
+## 🛠️ Technology Stack
+
+- **Frontend:** Next.js 15 App Router, React 19, TypeScript, Vanilla CSS, Recharts, Leaflet Maps
+- **Backend:** Node.js, Express.js, TypeScript, Mongoose ODM
+- **Cache & Queues:** Redis 7, BullMQ (6 active worker queues)
+- **Storage:** MinIO (Local S3-compatible Object Store) or AWS S3
+- **Testing:** Jest, Supertest (80%+ unit coverage target)
+
+---
+
+## 📁 Repository structure
+
+```text
+delhi-cm-grievance-dashboard/
+├── backend/                  # Express REST API Server
+│   ├── src/
+│   │   ├── config/          # Environment configuration & databases
+│   │   ├── controllers/     # Route handlers
+│   │   ├── middleware/      # Auth, RBAC, rate-limiting, and error-handlers
+│   │   ├── models/          # 15 Mongoose schemas
+│   │   ├── routes/          # REST route endpoints
+│   │   ├── services/        # Scoring, clustering, and WhatsApp engines
+│   │   └── workers/         # BullMQ queue background workers
+├── frontend/                 # Next.js 15 command center frontend
+│   └── src/app/
+│       ├── dashboard/
+│       │   ├── cm/          # Command center (Heatmaps, Rankings, Directives)
+│       │   ├── officer/     # Kanban workflow board & evidence portal
+│       │   └── citizen/     # Web intake & ticket tracking
+└── docs/                     # Visual design and engine specifications
+```
+
+---
+
+_Built for the Delhi Government Chief Minister's Command Center Demo._
