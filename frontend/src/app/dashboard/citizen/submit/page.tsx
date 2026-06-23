@@ -111,7 +111,7 @@ export default function SubmitComplaint() {
   if (submitted) {
     return (
       <div className="animate-fade-in" style={{ maxWidth: '600px', margin: '0 auto', textAlign: 'center', paddingTop: '60px' }}>
-        <div style={{ fontSize: '4rem', marginBottom: '16px' }}>✅</div>
+        <div style={{ fontSize: '4rem', marginBottom: '16px' }}>✓</div>
         <h1 style={{ fontSize: '1.75rem', fontWeight: 800, marginBottom: '8px' }}>Complaint Registered</h1>
         <p style={{ color: 'var(--text-secondary)', marginBottom: '24px' }}>Your complaint has been submitted and will be routed to the appropriate department.</p>
         <div className="glass-card" style={{ padding: '24px', marginBottom: '24px' }}>
@@ -138,13 +138,13 @@ export default function SubmitComplaint() {
           background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.2)',
           color: '#fca5a5', fontSize: '0.85rem',
         }}>
-          ⚠️ {error}
+          [!] {error}
         </div>
       )}
 
       <form onSubmit={handleSubmit} style={{ maxWidth: '700px' }}>
         <div className="glass-card" style={{ padding: '28px', marginBottom: '20px' }}>
-          <h3 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '20px' }}>📝 Issue Details</h3>
+          <h3 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '20px' }}>▣ Issue Details</h3>
 
           <div style={{ marginBottom: '16px' }}>
             <label style={{ display: 'block', marginBottom: '6px', fontSize: '0.85rem', fontWeight: 500, color: 'var(--text-secondary)' }}>Title *</label>
@@ -175,9 +175,9 @@ export default function SubmitComplaint() {
         </div>
 
         <div className="glass-card" style={{ padding: '28px', marginBottom: '20px' }}>
-          <h3 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '20px' }}>📍 Location</h3>
+          <h3 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '20px' }}>▣ Location</h3>
           <button type="button" className="btn btn-ghost" style={{ marginBottom: '16px', width: '100%' }} onClick={getLocation} disabled={locating}>
-            {locating ? '📡 Detecting location...' : coords ? `📍 GPS Lock Verified: ${coords.lat.toFixed(4)}, ${coords.lng.toFixed(4)}` : '📡 Detect My Location'}
+            {locating ? 'Detecting location...' : coords ? `GPS Lock Verified: ${coords.lat.toFixed(4)}, ${coords.lng.toFixed(4)}` : 'Detect My Location'}
           </button>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 220px), 1fr))', gap: '16px', marginBottom: '16px' }}>
             <div>
@@ -199,7 +199,7 @@ export default function SubmitComplaint() {
         </div>
 
         <div className="glass-card" style={{ padding: '28px', marginBottom: '20px' }}>
-          <h3 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '20px' }}>📎 Evidence (Optional)</h3>
+          <h3 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '20px' }}>▣ Evidence (Optional)</h3>
           <input
             type="file"
             id="file-upload"
@@ -212,7 +212,7 @@ export default function SubmitComplaint() {
             display: 'block', border: '2px dashed var(--border-color)', borderRadius: '12px', padding: '40px', textAlign: 'center',
             color: 'var(--text-muted)', cursor: 'pointer', transition: 'all 0.2s',
           }}>
-            <div style={{ fontSize: '2rem', marginBottom: '8px' }}>📷</div>
+            <div style={{ fontSize: '2rem', marginBottom: '8px' }}>[Upload]</div>
             {files.length > 0 ? (
               <div>
                 <p style={{ fontSize: '0.9rem', color: 'var(--text-primary)', fontWeight: 600 }}>{files.length} file(s) selected</p>
@@ -228,7 +228,7 @@ export default function SubmitComplaint() {
         </div>
 
         <button type="submit" className="btn btn-primary" style={{ width: '100%', padding: '16px', fontSize: '1rem' }} disabled={loading}>
-          {loading ? 'Submitting Grievance...' : '🚀 Submit Complaint'}
+          {loading ? 'Submitting Grievance...' : 'Submit Complaint'}
         </button>
       </form>
     </div>

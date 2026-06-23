@@ -8,37 +8,37 @@ export default function HomePage() {
 
   const features = [
     {
-      icon: '🛡️',
+      icon: '◆',
       title: 'Field Visit Mode',
       desc: 'GPS-powered nearby complaint view for on-ground inspections with real-time data overlay',
       gradient: 'from-blue-600 to-cyan-500',
     },
     {
-      icon: '✅',
+      icon: '✓',
       title: 'Citizen Veto',
       desc: 'No complaint closes until the citizen confirms — preventing false closure and desk-based fraud',
       gradient: 'from-emerald-600 to-green-500',
     },
     {
-      icon: '🔗',
+      icon: '⬡',
       title: 'Duplicate Clustering',
       desc: 'Geo-radius intelligent merging of complaints into master tickets with subscriber notifications',
       gradient: 'from-amber-600 to-orange-500',
     },
     {
-      icon: '🚨',
+      icon: '▲',
       title: 'Critical Alert Engine',
       desc: 'Life-threatening complaints bypass queues with immediate escalation and 4-hour SLA',
       gradient: 'from-red-600 to-pink-500',
     },
     {
-      icon: '📊',
+      icon: '▦',
       title: 'Officer Resource Ledger',
       desc: 'Real-time workload monitoring, bandwidth tracking, and intelligent re-routing of assignments',
       gradient: 'from-purple-600 to-violet-500',
     },
     {
-      icon: '🔒',
+      icon: '◈',
       title: 'Anti-Fraud by Design',
       desc: 'EXIF geotagging validation, before/after proof, complete audit trail for every action',
       gradient: 'from-indigo-600 to-blue-500',
@@ -46,10 +46,10 @@ export default function HomePage() {
   ];
 
   const stats = [
-    { value: '50+', label: 'API Endpoints', icon: '⚡' },
-    { value: '11', label: 'Data Models', icon: '🗄️' },
-    { value: '5', label: 'User Roles', icon: '👥' },
-    { value: '99.9%', label: 'Uptime Target', icon: '🎯' },
+    { value: '50+', label: 'API Endpoints', icon: '»' },
+    { value: '11', label: 'Data Models', icon: '▤' },
+    { value: '5', label: 'User Roles', icon: '⦿' },
+    { value: '99.9%', label: 'Uptime Target', icon: '◎' },
   ];
 
   return (
@@ -106,7 +106,7 @@ export default function HomePage() {
             background: 'rgba(59, 130, 246, 0.1)', border: '1px solid rgba(59, 130, 246, 0.2)',
             fontSize: '0.8rem', color: '#93c5fd', fontWeight: 500,
           }}>
-            🏛️ Chief Minister&apos;s Office, Delhi
+            ◇ Chief Minister&apos;s Office, Delhi
           </div>
 
           <h1 style={{

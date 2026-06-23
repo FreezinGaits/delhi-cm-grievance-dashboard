@@ -97,15 +97,15 @@ export default function WhatsAppAdminPage() {
       });
       const data = await res.json();
       if (data.success) {
-        setTestResult('✅ Message processed');
+        setTestResult('Success: Message processed');
         setTestMessage('');
         fetchSessions();
         if (selectedPhone === testPhone) viewMessages(testPhone);
       } else {
-        setTestResult(`❌ ${data.error?.message || 'Failed'}`);
+        setTestResult(`Error: ${data.error?.message || 'Failed'}`);
       }
     } catch (err) {
-      setTestResult('❌ Connection failed');
+      setTestResult('Error: Connection failed');
     } finally {
       setSending(false);
     }
@@ -121,10 +121,10 @@ export default function WhatsAppAdminPage() {
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '24px', flexWrap: 'wrap', gap: '12px' }}>
         <div>
-          <h1 style={{ fontSize: 'clamp(1.25rem, 3vw, 1.75rem)', fontWeight: 800, marginBottom: '4px' }}>📱 WhatsApp Intake Monitor</h1>
+          <h1 style={{ fontSize: 'clamp(1.25rem, 3vw, 1.75rem)', fontWeight: 800, marginBottom: '4px' }}>▣ WhatsApp Intake Monitor</h1>
           <p style={{ color: 'var(--text-muted)', fontSize: 'clamp(0.75rem, 1.5vw, 0.9rem)' }}>Active sessions, message history, and test console</p>
         </div>
-        <button onClick={fetchSessions} className="btn btn-ghost" style={{ flexShrink: 0 }}>🔄 Refresh</button>
+        <button onClick={fetchSessions} className="btn btn-ghost" style={{ flexShrink: 0 }}>↻ Refresh</button>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 360px), 1fr))', gap: '20px' }}>
@@ -145,11 +145,11 @@ export default function WhatsAppAdminPage() {
                 onKeyDown={e => e.key === 'Enter' && sendTestMessage()} style={{ flex: '2 1 200px' }} />
               <button onClick={sendTestMessage} className="btn btn-primary" disabled={sending}
                 style={{ whiteSpace: 'nowrap', flex: '1 1 auto' }}>
-                {sending ? '⏳' : '📤 Send'}
+                {sending ? '...' : 'Send'}
               </button>
             </div>
             {testResult && (
-              <div style={{ fontSize: '0.8rem', padding: '8px 12px', borderRadius: '8px', background: testResult.startsWith('✅') ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)', color: testResult.startsWith('✅') ? '#6ee7b7' : '#fca5a5' }}>
+              <div style={{ fontSize: '0.8rem', padding: '8px 12px', borderRadius: '8px', background: testResult.startsWith('Success') ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)', color: testResult.startsWith('Success') ? '#6ee7b7' : '#fca5a5' }}>
                 {testResult}
               </div>
             )}
@@ -158,7 +158,7 @@ export default function WhatsAppAdminPage() {
           {/* Active Sessions */}
           <div className="glass-card" style={{ padding: '20px' }}>
             <h3 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '14px' }}>
-              📞 Active Sessions ({sessions.length})
+              ○ Active Sessions ({sessions.length})
             </h3>
             {loading ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
@@ -182,7 +182,7 @@ export default function WhatsAppAdminPage() {
                         border: `1px solid ${isSelected ? 'rgba(59, 130, 246, 0.3)' : 'var(--border-color)'}`,
                       }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-                        <span style={{ fontWeight: 700, fontSize: '0.9rem' }}>📱 {session.phoneNumber}</span>
+                        <span style={{ fontWeight: 700, fontSize: '0.9rem' }}>{session.phoneNumber}</span>
                         <span style={{
                           padding: '2px 8px', borderRadius: '999px', fontSize: '0.65rem', fontWeight: 600,
                           color: state.color, background: `${state.color}20`,
@@ -191,7 +191,7 @@ export default function WhatsAppAdminPage() {
                         </span>
                       </div>
                       <div style={{ display: 'flex', gap: '16px', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                        {session.conversationData?.name && <span>👤 {session.conversationData.name}</span>}
+                        {session.conversationData?.name && <span>{session.conversationData.name}</span>}
                         <span>💬 {session.messageCount} messages</span>
                         <span>🕐 {formatTime(session.lastMessageAt)}</span>
                       </div>
@@ -230,7 +230,7 @@ export default function WhatsAppAdminPage() {
                   }}>
                     <div style={{ display: 'flex', gap: '6px', alignItems: 'center', marginBottom: '4px' }}>
                       <span style={{ fontSize: '0.65rem', fontWeight: 600, color: msg.direction === 'outbound' ? '#93c5fd' : '#fbbf24' }}>
-                        {msg.direction === 'outbound' ? '🤖 Bot' : '👤 Citizen'}
+                        {msg.direction === 'outbound' ? 'Bot' : 'Citizen'}
                       </span>
                       <span style={{ fontSize: '0.6rem', color: 'var(--text-muted)' }}>
                         {formatTime(msg.timestamp)}
@@ -241,7 +241,7 @@ export default function WhatsAppAdminPage() {
                     </div>
                     {msg.messageType !== 'text' && (
                       <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', marginTop: '4px', display: 'block' }}>
-                        📎 {msg.messageType}
+                        Attachment: {msg.messageType}
                       </span>
                     )}
                   </div>

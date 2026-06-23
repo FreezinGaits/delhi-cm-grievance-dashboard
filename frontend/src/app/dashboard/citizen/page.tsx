@@ -142,7 +142,7 @@ export default function CitizenDashboard() {
           <h1 style={{ fontSize: 'clamp(1.25rem, 3vw, 1.75rem)', fontWeight: 800, marginBottom: '4px' }}>My Complaints</h1>
           <p style={{ color: 'var(--text-muted)', fontSize: 'clamp(0.75rem, 1.5vw, 0.9rem)' }}>Track and manage your submitted grievances</p>
         </div>
-        <Link href="/dashboard/citizen/submit" className="btn btn-primary" style={{ flexShrink: 0 }}>✏️ New Complaint</Link>
+        <Link href="/dashboard/citizen/submit" className="btn btn-primary" style={{ flexShrink: 0 }}>New Complaint</Link>
       </div>
 
       {error && (
@@ -151,7 +151,7 @@ export default function CitizenDashboard() {
           background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.2)',
           color: '#fca5a5', fontSize: '0.85rem',
         }}>
-          ⚠️ {error}
+          [!] {error}
         </div>
       )}
 
@@ -188,7 +188,7 @@ export default function CitizenDashboard() {
       <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
         {filtered.length === 0 ? (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '48px 24px', border: '1px dashed var(--border-color)', borderRadius: '16px', color: 'var(--text-muted)' }}>
-            <span style={{ fontSize: '2rem', marginBottom: '8px' }}>📂</span>
+            <span style={{ fontSize: '2rem', marginBottom: '8px' }}>▣</span>
             <span style={{ fontSize: '0.9rem' }}>No grievances found.</span>
           </div>
         ) : (
@@ -204,15 +204,15 @@ export default function CitizenDashboard() {
                   <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '6px' }}>
                     <span className={`badge badge-${complaint.status}`} style={{ textTransform: 'capitalize' }}>{complaint.status.replace(/_/g, ' ')}</span>
                     <span className={`badge badge-${complaint.priority}`}>{complaint.priority}</span>
-                    {isSlaBreached && <span className="badge badge-critical">SLA ❌</span>}
+                    {isSlaBreached && <span className="badge badge-critical">SLA Breached</span>}
                   </div>
                   <h3 style={{ fontWeight: 600, fontSize: '1rem', marginBottom: '4px' }}>{complaint.title}</h3>
                   <div style={{ display: 'flex', gap: '16px', fontSize: '0.8rem', color: 'var(--text-muted)', flexWrap: 'wrap' }}>
-                    <span>📋 {complaint.referenceNumber}</span>
-                    <span>📁 {complaint.category}</span>
-                    <span>🏢 {deptCode}</span>
-                    <span>📍 {wardName}</span>
-                    <span>📅 {createdDate}</span>
+                    <span>▣ {complaint.referenceNumber}</span>
+                    <span>Category: {complaint.category}</span>
+                    <span>Dept: {deptCode}</span>
+                    <span>Ward: {wardName}</span>
+                    <span>Date: {createdDate}</span>
                   </div>
 
                   {complaint.resolutionEvidence && (
@@ -224,7 +224,7 @@ export default function CitizenDashboard() {
                       border: '1px solid var(--border-color)',
                       fontSize: '0.85rem'
                     }}>
-                      <div style={{ fontWeight: 600, marginBottom: '6px', color: '#6ee7b7' }}>🔍 Resolution Evidence:</div>
+                      <div style={{ fontWeight: 600, marginBottom: '6px', color: '#6ee7b7' }}>◎ Resolution Evidence:</div>
                       <div style={{ color: 'var(--text-secondary)', marginBottom: '8px' }}>
                         <strong>Officer Notes:</strong> &ldquo;{complaint.resolutionEvidence.description || 'No notes provided.'}&rdquo;
                       </div>
@@ -244,7 +244,7 @@ export default function CitizenDashboard() {
                                 />
                                 {mediaItem.metadata?.gpsLat && mediaItem.metadata?.gpsLng && (
                                   <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                                    📍 GPS Location: {mediaItem.metadata.gpsLat.toFixed(6)}, {mediaItem.metadata.gpsLng.toFixed(6)}
+                                    GPS Location: {mediaItem.metadata.gpsLat.toFixed(6)}, {mediaItem.metadata.gpsLng.toFixed(6)}
                                   </div>
                                 )}
                               </div>
@@ -258,8 +258,8 @@ export default function CitizenDashboard() {
                 <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }} onClick={(e) => e.stopPropagation()}>
                   {complaint.status === 'provisionally_resolved' && (
                     <>
-                      <button onClick={() => setShowConfirmModal(complaint._id)} className="btn btn-success" style={{ padding: '8px 14px', fontSize: '0.8rem' }}>✅ Confirm</button>
-                      <button onClick={() => setShowRejectModal(complaint._id)} className="btn btn-danger" style={{ padding: '8px 14px', fontSize: '0.8rem' }}>❌ Reject</button>
+                      <button onClick={() => setShowConfirmModal(complaint._id)} className="btn btn-success" style={{ padding: '8px 14px', fontSize: '0.8rem' }}>Confirm</button>
+                      <button onClick={() => setShowRejectModal(complaint._id)} className="btn btn-danger" style={{ padding: '8px 14px', fontSize: '0.8rem' }}>Reject</button>
                     </>
                   )}
                 </div>

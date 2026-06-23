@@ -198,8 +198,8 @@ export default function LiveMap({ apiUrl, token }: LiveMapProps) {
             background:linear-gradient(135deg,#ef4444,#dc2626); color:white; border:none;
             padding:6px 14px; border-radius:6px; font-size:11px; font-weight:600;
             cursor:pointer; width:100%;
-          ">🚨 Escalate to Critical</button>` : ''}
-          ${point.isCritical ? '<div style="color:#fca5a5; font-size:11px; font-weight:600;">⚠️ Already Critical</div>' : ''}
+          ">▲ Escalate to Critical</button>` : ''}
+          ${point.isCritical ? '<div style="color:#fca5a5; font-size:11px; font-weight:600;">[!] Already Critical</div>' : ''}
         </div>
       `;
 
@@ -245,12 +245,12 @@ export default function LiveMap({ apiUrl, token }: LiveMapProps) {
         box-shadow:0 0 20px #06b6d4; border:3px solid white;
         display:flex; align-items:center; justify-content:center;
         font-size:10px;
-      ">📍</div>`,
+      ">○</div>`,
       iconSize: [20, 20],
       iconAnchor: [10, 10],
     });
     L.marker(cmPosition, { icon: cmIcon })
-      .bindPopup('<div style="color:#e2e8f0;font-weight:700;">📍 Your Location</div>', { className: 'dark-popup' })
+      .bindPopup('<div style="color:#e2e8f0;font-weight:700;">○ Your Location</div>', { className: 'dark-popup' })
       .addTo(nearbyLayerRef.current!);
 
     // Render nearby complaint markers
@@ -277,10 +277,10 @@ export default function LiveMap({ apiUrl, token }: LiveMapProps) {
           <div style="font-weight:700; font-size:13px; margin-bottom:4px;">${c.title}</div>
           <div style="font-size:11px; color:#94a3b8; margin-bottom:6px;">${c.description?.slice(0, 100) || ''}...</div>
           <div style="display:grid; grid-template-columns:1fr 1fr; gap:4px; font-size:11px; margin-bottom:8px;">
-            <span>📋 ${c.category}</span>
-            <span>📍 ${c.address?.ward || 'N/A'}</span>
-            <span>🏢 ${c.assignedDepartment?.code || 'N/A'}</span>
-            <span>👤 ${officerName}</span>
+            <span>Category: ${c.category}</span>
+            <span>Ward: ${c.address?.ward || 'N/A'}</span>
+            <span>Dept: ${c.assignedDepartment?.code || 'N/A'}</span>
+            <span>Officer: ${officerName}</span>
           </div>
           <div style="display:flex; gap:6px; margin-bottom:8px;">
             <span style="background:${color}22; color:${color}; padding:2px 8px; border-radius:4px; font-size:11px; font-weight:600;">${c.priority.toUpperCase()}</span>
@@ -290,7 +290,7 @@ export default function LiveMap({ apiUrl, token }: LiveMapProps) {
             background:linear-gradient(135deg,#ef4444,#dc2626); color:white; border:none;
             padding:6px 14px; border-radius:6px; font-size:11px; font-weight:600;
             cursor:pointer; width:100%;
-          ">🚨 Escalate to Critical</button>` : '<div style="color:#fca5a5;font-size:11px;font-weight:600;">⚠️ Already Critical</div>'}
+          ">▲ Escalate to Critical</button>` : '<div style="color:#fca5a5;font-size:11px;font-weight:600;">[!] Already Critical</div>'}
         </div>
       `;
 
@@ -364,7 +364,7 @@ export default function LiveMap({ apiUrl, token }: LiveMapProps) {
         background: 'var(--bg-secondary)',
       }}>
         <div>
-          <h3 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: '2px' }}>🗺️ Live Incident Map — NCT Delhi</h3>
+          <h3 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: '2px' }}>▣ Live Incident Map — NCT Delhi</h3>
           <p style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>
             {totalPoints} incidents plotted • {criticalCount} critical • {unresolvedCount} unresolved
           </p>
@@ -464,7 +464,7 @@ export default function LiveMap({ apiUrl, token }: LiveMapProps) {
           borderBottom: '1px solid rgba(6, 182, 212, 0.2)',
           display: 'flex', gap: '20px', alignItems: 'center', fontSize: '0.8rem',
         }}>
-          <span style={{ color: '#06b6d4', fontWeight: 700 }}>📍 Field Visit Active</span>
+          <span style={{ color: '#06b6d4', fontWeight: 700 }}>○ Field Visit Active</span>
           <span>Radius: <strong>{fieldRadius >= 1000 ? `${fieldRadius/1000}km` : `${fieldRadius}m`}</strong></span>
           <span>Nearby Issues: <strong style={{ color: nearbyComplaints.length > 0 ? '#fbbf24' : '#6ee7b7' }}>{nearbyComplaints.length}</strong></span>
           {cmPosition && <span style={{ color: 'var(--text-muted)' }}>Lat: {cmPosition[0].toFixed(4)}, Lng: {cmPosition[1].toFixed(4)}</span>}

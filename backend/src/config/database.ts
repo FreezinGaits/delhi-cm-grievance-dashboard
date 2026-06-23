@@ -18,7 +18,7 @@ export async function connectDatabase(): Promise<void> {
         socketTimeoutMS: 45000,
       });
 
-      logger.info('✅ MongoDB connected successfully');
+      logger.info('MongoDB connected successfully');
 
       mongoose.connection.on('error', (err) => {
         logger.error('MongoDB connection error:', err);

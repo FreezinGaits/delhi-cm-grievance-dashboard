@@ -315,8 +315,43 @@ export class WhatsAppService {
     message: { type: string; location?: { latitude: number; longitude: number; name?: string; address?: string }; text?: { body: string } },
   ): Promise<void> {
     if (message.type !== 'location' || !message.location) {
+      const text = message.text?.body?.trim() || '';
+      if (text) {
+        const wards = ['Connaught Place', 'Karol Bagh', 'Chandni Chowk', 'Dwarka', 'Rohini', 'Saket', 'Lajpat Nagar', 'Pitampura', 'Janakpuri', 'Vasant Kunj', 'Rajouri Garden', 'Nehru Place'];
+        const foundWard = wards.find(w => w.toLowerCase() === text.toLowerCase());
+        if (foundWard) {
+          const wardCoords: Record<string, { lat: number; lng: number }> = {
+            'Connaught Place': { lat: 28.6315, lng: 77.2167 },
+            'Karol Bagh': { lat: 28.6514, lng: 77.1907 },
+            'Chandni Chowk': { lat: 28.6506, lng: 77.2334 },
+            'Dwarka': { lat: 28.5921, lng: 77.0460 },
+            'Rohini': { lat: 28.7495, lng: 77.0565 },
+            'Saket': { lat: 28.5245, lng: 77.2066 },
+            'Lajpat Nagar': { lat: 28.5700, lng: 77.2373 },
+            'Pitampura': { lat: 28.7038, lng: 77.1318 },
+            'Janakpuri': { lat: 28.6219, lng: 77.0815 },
+            'Vasant Kunj': { lat: 28.5194, lng: 77.1540 },
+            'Rajouri Garden': { lat: 28.6469, lng: 77.1228 },
+            'Nehru Place': { lat: 28.5491, lng: 77.2533 },
+          };
+          const coords = wardCoords[foundWard];
+          await this.updateSessionState(session, ConversationState.AWAITING_CATEGORY, {
+            latitude: coords.lat,
+            longitude: coords.lng,
+            ward: foundWard,
+          });
+          const categoryList = COMPLAINT_CATEGORIES.map((c, i) => `${i + 1}. ${c}`).join('\n');
+          await this.sendAndLog(from, session,
+            `📍 Location received: *${foundWard}*\n\n` +
+            `Please select a *complaint category* by replying with the number:\n\n` +
+            `${categoryList}`,
+          );
+          return;
+        }
+      }
+
       return this.sendAndLog(from, session,
-        '⚠️ Please share a *location pin*, not text.\n\n' +
+        '⚠️ Please share a *location pin*, not text (or type a valid Delhi Ward name like "Karol Bagh" or "Dwarka").\n\n' +
         'Tap 📎 → Location → Send your current location.',
       );
     }

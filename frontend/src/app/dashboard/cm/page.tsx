@@ -249,7 +249,7 @@ export default function CMDashboard() {
         </div>
         <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
           <button onClick={() => { fetchDashboardData(); if (activeTab === 'complaints') fetchAllComplaints(); }} className="btn btn-ghost" style={{ padding: '8px 14px', fontSize: '0.8rem' }}>
-            🔄 Refresh
+            ↻ Refresh
           </button>
         </div>
       </div>
@@ -260,7 +260,7 @@ export default function CMDashboard() {
           background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.2)',
           color: '#fca5a5', fontSize: '0.85rem',
         }}>
-          ⚠️ {error}
+          [!] {error}
         </div>
       )}
 
@@ -269,12 +269,12 @@ export default function CMDashboard() {
         <>
           {/* KPI Cards */}
           <div className="stagger-children" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 155px), 1fr))', gap: '12px', marginBottom: '24px' }}>
-            <StatCard label="Total Complaints" value={summary.totalComplaints.toLocaleString()} icon="📊" />
-            <StatCard label="Open / Active" value={summary.openComplaints.toLocaleString()} icon="📂" variant="warning" />
-            <StatCard label="Resolved Today" value={summary.resolvedToday.toString()} icon="✅" variant="success" />
-            <StatCard label="Critical Active" value={summary.criticalActive.toString()} icon="🚨" variant="critical" pulse={summary.criticalActive > 0} />
-            <StatCard label="SLA Breaches" value={summary.slaBreaches.toString()} icon="⏱️" variant="critical" />
-            <StatCard label="Satisfaction" value={`${summary.citizenSatisfaction}%`} icon="😊" variant="success" />
+            <StatCard label="Total Complaints" value={summary.totalComplaints.toLocaleString()} icon="▦" />
+            <StatCard label="Open / Active" value={summary.openComplaints.toLocaleString()} icon="□" variant="warning" />
+            <StatCard label="Resolved Today" value={summary.resolvedToday.toString()} icon="✓" variant="success" />
+            <StatCard label="Critical Active" value={summary.criticalActive.toString()} icon="▲" variant="critical" pulse={summary.criticalActive > 0} />
+            <StatCard label="SLA Breaches" value={summary.slaBreaches.toString()} icon="◷" variant="critical" />
+            <StatCard label="Satisfaction" value={`${summary.citizenSatisfaction}%`} icon="◎" variant="success" />
           </div>
 
           {/* Delhi Happiness Index & Worst Performing Zones */}
@@ -283,7 +283,7 @@ export default function CMDashboard() {
             <div className="glass-card" style={{ padding: '24px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', minHeight: '180px' }}>
               <div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                  <h3 style={{ fontSize: '1rem', fontWeight: 700, margin: 0 }}>🎯 Delhi Happiness Index</h3>
+                  <h3 style={{ fontSize: '1rem', fontWeight: 700, margin: 0 }}>◎ Delhi Happiness Index</h3>
                   <span style={{
                     padding: '2px 8px', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 700,
                     background: (dashboardData?.happinessIndex?.rating === 'Excellent' ? 'rgba(16, 185, 129, 0.15)' : dashboardData?.happinessIndex?.rating === 'Satisfactory' ? 'rgba(245, 158, 11, 0.15)' : 'rgba(239, 68, 68, 0.15)'),
@@ -329,7 +329,7 @@ export default function CMDashboard() {
             {/* Worst Performing Municipal Zones Card */}
             <div className="glass-card" style={{ padding: '24px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', minHeight: '180px' }}>
               <div>
-                <h3 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '4px' }}>🚨 Worst Performing Municipal Wards</h3>
+                <h3 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '4px' }}>▲ Worst Performing Municipal Wards</h3>
                 <p style={{ color: 'var(--text-muted)', fontSize: '0.75rem', marginBottom: '12px' }}>
                   Wards with the highest volume of unresolved complaints.
                 </p>
@@ -369,7 +369,7 @@ export default function CMDashboard() {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 340px), 1fr))', gap: '16px', marginBottom: '24px' }}>
             {/* Trend Chart */}
             <div className="glass-card" style={{ padding: '24px' }}>
-              <h3 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '20px' }}>📈 Weekly Trend</h3>
+              <h3 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '20px' }}>△ Weekly Trend</h3>
               {trendData.length === 0 ? (
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '180px', color: 'var(--text-muted)', fontSize: '0.9rem' }}>
                   No complaints in the last 7 days.
@@ -402,7 +402,7 @@ export default function CMDashboard() {
 
             {/* Status Breakdown */}
             <div className="glass-card" style={{ padding: '24px' }}>
-              <h3 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '20px' }}>📊 Status Distribution</h3>
+              <h3 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '20px' }}>▦ Status Distribution</h3>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                 {statusList.map(({ key, label, color }) => {
                   const count = statusBreakdown[key] || 0;
@@ -427,12 +427,12 @@ export default function CMDashboard() {
           {/* Department Performance + Critical Alerts */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 340px), 1fr))', gap: '16px' }}>
             <div className="glass-card" style={{ padding: '24px', overflow: 'hidden' }}>
-              <h3 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '16px' }}>🏢 Department Performance</h3>
+              <h3 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '16px' }}>▤ Department Performance</h3>
               <div style={{ overflowX: 'auto' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
                   <thead>
                     <tr style={{ borderBottom: '1px solid var(--border-color)' }}>
-                      {['Department', 'Total', 'Resolved', 'Pending', 'SLA ❌', 'Rate'].map((h) => (
+                      {['Department', 'Total', 'Resolved', 'Pending', 'SLA Fail', 'Rate'].map((h) => (
                         <th key={h} style={{ padding: '10px 8px', textAlign: 'left', color: 'var(--text-muted)', fontWeight: 600, fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{h}</th>
                       ))}
                     </tr>
@@ -469,7 +469,7 @@ export default function CMDashboard() {
 
             <div className="glass-card" style={{ padding: '24px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                <h3 style={{ fontSize: '1rem', fontWeight: 700 }}>🚨 Critical Alerts</h3>
+                <h3 style={{ fontSize: '1rem', fontWeight: 700 }}>▲ Critical Alerts</h3>
                 <span className="badge badge-critical">{recentCritical.length} Active</span>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', maxHeight: '350px', overflowY: 'auto' }}>
@@ -477,9 +477,9 @@ export default function CMDashboard() {
                   <div key={alert._id} style={{ padding: '14px', borderRadius: '12px', background: 'rgba(239, 68, 68, 0.05)', border: '1px solid rgba(239, 68, 68, 0.15)' }}>
                     <div style={{ fontWeight: 600, fontSize: '0.85rem', marginBottom: '4px' }}>{alert.title}</div>
                     <div style={{ display: 'flex', gap: '12px', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                      <span>📍 {alert.address?.ward || 'General'}</span>
-                      <span>🏢 {alert.assignedDepartment?.code || 'UNKN'}</span>
-                      <span>🕐 {formatTimeAgo(alert.createdAt)}</span>
+                      <span>○ {alert.address?.ward || 'General'}</span>
+                      <span>▤ {alert.assignedDepartment?.code || 'UNKN'}</span>
+                      <span>◷ {formatTimeAgo(alert.createdAt)}</span>
                     </div>
                   </div>
                 ))}
@@ -499,7 +499,7 @@ export default function CMDashboard() {
       {activeTab === 'complaints' && (
         <div className="glass-card" style={{ padding: '24px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
-            <h3 style={{ fontSize: 'clamp(0.95rem, 2vw, 1.1rem)', fontWeight: 700 }}>📋 Comprehensive Incident Ledger</h3>
+            <h3 style={{ fontSize: 'clamp(0.95rem, 2vw, 1.1rem)', fontWeight: 700 }}>▣ Comprehensive Incident Ledger</h3>
             <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', width: '100%', maxWidth: '440px' }}>
               <input
                 className="input"
@@ -611,7 +611,7 @@ export default function CMDashboard() {
                         </div>
                       </div>
                       <div style={{ marginTop: '12px', fontSize: '0.8rem', color: warningsCount > 0 ? '#fca5a5' : 'var(--text-muted)' }}>
-                        ⚠️ Disciplinary Warnings: <strong>{warningsCount}</strong>
+                        [!] Disciplinary Warnings: <strong>{warningsCount}</strong>
                       </div>
                       {isSuspended && off.officer?.suspensionReason && (
                         <div style={{ marginTop: '8px', fontSize: '0.75rem', color: '#fca5a5', background: 'rgba(239, 68, 68, 0.1)', padding: '6px', borderRadius: '4px', border: '1px dashed rgba(239, 68, 68, 0.3)' }}>
@@ -626,7 +626,7 @@ export default function CMDashboard() {
                         className="btn btn-ghost" 
                         style={{ flex: 1, padding: '6px', fontSize: '0.75rem', borderColor: 'rgba(245, 158, 11, 0.4)', color: '#f59e0b' }}
                       >
-                        ⚠️ Reprimand
+                        [!] Reprimand
                       </button>
                       <button 
                         onClick={() => handleToggleSuspend(off.officer?.id, !!isSuspended)} 
@@ -640,7 +640,7 @@ export default function CMDashboard() {
                           border: `1px solid ${isSuspended ? '#10b981' : '#ef4444'}` 
                         }}
                       >
-                        {isSuspended ? '✔️ Restore' : '🚫 Suspend'}
+                        {isSuspended ? '✓ Restore' : '✕ Suspend'}
                       </button>
                     </div>
                   </div>
@@ -656,7 +656,7 @@ export default function CMDashboard() {
         const slaReport = dashboardData?.slaReport || [];
         return (
         <div className="glass-card" style={{ padding: '24px' }}>
-          <h3 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: '20px' }}>⏱️ SLA Compliance & Breaches (Live)</h3>
+          <h3 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: '20px' }}>◷ SLA Compliance & Breaches (Live)</h3>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 180px), 1fr))', gap: '12px', marginBottom: '24px' }}>
             <div className="stat-card">
               <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Average Resolution Time</div>
@@ -708,7 +708,7 @@ export default function CMDashboard() {
 
       {activeTab === 'alerts' && (
         <div className="glass-card" style={{ padding: '24px' }}>
-          <h3 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: '20px' }}>🚨 All Critical Safety Alerts</h3>
+          <h3 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: '20px' }}>▲ All Critical Safety Alerts</h3>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             {recentCritical.map((alert: any) => (
               <div key={alert._id} style={{ padding: '20px', borderRadius: '14px', background: 'rgba(239, 68, 68, 0.03)', border: '1px solid rgba(239, 68, 68, 0.1)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -720,9 +720,9 @@ export default function CMDashboard() {
                   <h4 style={{ fontWeight: 700, fontSize: '1rem', marginBottom: '6px' }}>{alert.title}</h4>
                   <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '8px' }}>{alert.description}</p>
                   <div style={{ display: 'flex', gap: '16px', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                    <span>📍 Ward: {alert.address?.ward || 'General'}</span>
-                    <span>🏢 Department: {alert.assignedDepartment?.code || 'UNKN'}</span>
-                    <span>🕐 Submitted: {new Date(alert.createdAt).toLocaleString('en-IN')}</span>
+                    <span>○ Ward: {alert.address?.ward || 'General'}</span>
+                    <span>▤ Department: {alert.assignedDepartment?.code || 'UNKN'}</span>
+                    <span>◷ Submitted: {new Date(alert.createdAt).toLocaleString('en-IN')}</span>
                   </div>
                 </div>
               </div>
@@ -741,7 +741,7 @@ export default function CMDashboard() {
             {/* Modal Header */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px 24px', borderBottom: '1px solid var(--border-color)', flexShrink: 0 }}>
               <div>
-                <span className="badge badge-ghost" style={{ marginRight: '8px', fontSize: '0.8rem' }}>📋 {selectedComplaint.referenceNumber}</span>
+                <span className="badge badge-ghost" style={{ marginRight: '8px', fontSize: '0.8rem' }}>▣ {selectedComplaint.referenceNumber}</span>
                 <span className={`badge badge-${selectedComplaint.status}`} style={{ textTransform: 'capitalize', fontSize: '0.8rem', marginRight: '8px' }}>
                   {selectedComplaint.status.replace(/_/g, ' ')}
                 </span>
@@ -786,7 +786,7 @@ export default function CMDashboard() {
                             />
                             {item.metadata?.gpsLat && (
                               <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
-                                📍 {item.metadata.gpsLat.toFixed(4)}, {item.metadata.gpsLng.toFixed(4)}
+                                ○ {item.metadata.gpsLat.toFixed(4)}, {item.metadata.gpsLng.toFixed(4)}
                               </div>
                             )}
                           </div>
@@ -799,7 +799,7 @@ export default function CMDashboard() {
                 {/* Resolution Evidence */}
                 {selectedComplaint.resolutionEvidence && (
                   <div style={{ padding: '16px', background: 'rgba(16, 185, 129, 0.05)', borderRadius: '12px', border: '1px solid rgba(16, 185, 129, 0.15)' }}>
-                    <h3 style={{ fontSize: '0.95rem', fontWeight: 700, color: '#6ee7b7', marginBottom: '8px' }}>🔍 Resolution Evidence</h3>
+                    <h3 style={{ fontSize: '0.95rem', fontWeight: 700, color: '#6ee7b7', marginBottom: '8px' }}>◎ Resolution Evidence</h3>
                     <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '10px' }}>
                       <strong>Officer Notes:</strong> &ldquo;{selectedComplaint.resolutionEvidence.description || 'No explanation notes.'}&rdquo;
                     </p>
@@ -817,7 +817,7 @@ export default function CMDashboard() {
                               />
                               {item.metadata?.gpsLat && (
                                 <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                                  📍 Verified GPS Coordinate Check: {item.metadata.gpsLat.toFixed(6)}, {item.metadata.gpsLng.toFixed(6)}
+                                  ○ Verified GPS Coordinate Check: {item.metadata.gpsLat.toFixed(6)}, {item.metadata.gpsLng.toFixed(6)}
                                 </div>
                               )}
                             </div>
@@ -831,7 +831,7 @@ export default function CMDashboard() {
                 {/* Spot Directive */}
                 {selectedComplaint.spotDirective && (
                   <div style={{ padding: '16px', background: 'rgba(239, 68, 68, 0.05)', borderRadius: '12px', border: '1px solid rgba(239, 68, 68, 0.15)' }}>
-                    <h3 style={{ fontSize: '0.95rem', fontWeight: 700, color: '#fca5a5', marginBottom: '4px' }}>🚨 Spot Directive Issued</h3>
+                    <h3 style={{ fontSize: '0.95rem', fontWeight: 700, color: '#fca5a5', marginBottom: '4px' }}>▲ Spot Directive Issued</h3>
                     <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '6px' }}>
                       &ldquo;{selectedComplaint.spotDirective.directive}&rdquo;
                     </p>
@@ -863,7 +863,7 @@ export default function CMDashboard() {
                   <h4 style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '4px', textTransform: 'uppercase' }}>SLA Target</h4>
                   <div style={{ fontSize: '0.9rem', fontWeight: 600, color: selectedComplaint.sla?.breached ? '#ef4444' : '#fbbf24' }}>
                     {selectedComplaint.sla?.deadline ? new Date(selectedComplaint.sla.deadline).toLocaleString('en-IN') : 'N/A'}
-                    {selectedComplaint.sla?.breached && ' (BREACHED ❌)'}
+                    {selectedComplaint.sla?.breached && ' (BREACHED)'}
                   </div>
                 </div>
 
@@ -884,7 +884,7 @@ export default function CMDashboard() {
                           <span key={i} style={{ opacity: i < selectedComplaint.citizenFeedback.rating ? 1 : 0.2 }}>★</span>
                         ))
                       ) : (
-                        <span style={{ fontSize: '0.85rem', color: '#ef4444', fontWeight: 600 }}>REJECTED ❌</span>
+                        <span style={{ fontSize: '0.85rem', color: '#ef4444', fontWeight: 600 }}>REJECTED</span>
                       )}
                     </div>
                     {selectedComplaint.citizenFeedback.rejectionReason && (

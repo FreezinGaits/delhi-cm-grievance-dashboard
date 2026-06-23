@@ -13,34 +13,34 @@ interface User {
 
 const NAV_ITEMS: Record<string, Array<{ label: string; href: string; icon: string }>> = {
   cm: [
-    { label: 'Overview', href: '/dashboard/cm', icon: '📊' },
-    { label: 'Heatmap', href: '/dashboard/cm/heatmap', icon: '🗺️' },
-    { label: 'Complaints', href: '/dashboard/cm/complaints', icon: '📋' },
-    { label: 'Officer Ledger', href: '/dashboard/cm/officers', icon: '👮' },
-    { label: 'SLA Report', href: '/dashboard/cm/sla', icon: '⏱️' },
-    { label: 'Alerts', href: '/dashboard/cm/alerts', icon: '🚨' },
-    { label: 'Directives', href: '/dashboard/cm/directives', icon: '📋' },
-    { label: 'Rankings', href: '/dashboard/cm/rankings', icon: '🏅' },
-    { label: 'Clusters', href: '/dashboard/cm/clusters', icon: '🔗' },
-    { label: 'WhatsApp', href: '/dashboard/cm/whatsapp', icon: '📱' },
+    { label: 'Overview', href: '/dashboard/cm', icon: '▦' },
+    { label: 'Heatmap', href: '/dashboard/cm/heatmap', icon: '▥' },
+    { label: 'Complaints', href: '/dashboard/cm/complaints', icon: '▣' },
+    { label: 'Officer Ledger', href: '/dashboard/cm/officers', icon: '◇' },
+    { label: 'SLA Report', href: '/dashboard/cm/sla', icon: '◷' },
+    { label: 'Alerts', href: '/dashboard/cm/alerts', icon: '▲' },
+    { label: 'Directives', href: '/dashboard/cm/directives', icon: '▷' },
+    { label: 'Rankings', href: '/dashboard/cm/rankings', icon: '◈' },
+    { label: 'Clusters', href: '/dashboard/cm/clusters', icon: '⬡' },
+    { label: 'WhatsApp', href: '/dashboard/cm/whatsapp', icon: '○' },
   ],
   officer: [
-    { label: 'Kanban Board', href: '/dashboard/officer', icon: '📋' },
-    { label: 'My Complaints', href: '/dashboard/officer/complaints', icon: '📝' },
+    { label: 'Kanban Board', href: '/dashboard/officer', icon: '▣' },
+    { label: 'My Complaints', href: '/dashboard/officer/complaints', icon: '□' },
   ],
   department_head: [
-    { label: 'Kanban Board', href: '/dashboard/officer', icon: '📋' },
-    { label: 'Team Overview', href: '/dashboard/officer/complaints', icon: '👥' },
+    { label: 'Kanban Board', href: '/dashboard/officer', icon: '▣' },
+    { label: 'Team Overview', href: '/dashboard/officer/complaints', icon: '⦿' },
   ],
   admin: [
-    { label: 'Users', href: '/dashboard/admin', icon: '👥' },
-    { label: 'Departments', href: '/dashboard/admin/departments', icon: '🏢' },
-    { label: 'Audit Logs', href: '/dashboard/admin/audit', icon: '📜' },
+    { label: 'Users', href: '/dashboard/admin', icon: '⦿' },
+    { label: 'Departments', href: '/dashboard/admin/departments', icon: '▤' },
+    { label: 'Audit Logs', href: '/dashboard/admin/audit', icon: '▥' },
   ],
   citizen: [
-    { label: 'My Complaints', href: '/dashboard/citizen', icon: '📋' },
-    { label: 'Submit New', href: '/dashboard/citizen/submit', icon: '✏️' },
-    { label: 'Track', href: '/track', icon: '🔍' },
+    { label: 'My Complaints', href: '/dashboard/citizen', icon: '▣' },
+    { label: 'Submit New', href: '/dashboard/citizen/submit', icon: '✎' },
+    { label: 'Track', href: '/track', icon: '◎' },
   ],
 };
 
@@ -229,7 +229,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
             }}
           >
-            🚪 {showLabels && 'Sign Out'}
+            → {showLabels && 'Sign Out'}
           </button>
         </div>
       </aside>

@@ -4,11 +4,11 @@ import { useState, useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 
 const COLUMNS = [
-  { key: 'submitted', label: 'Submitted', color: '#94a3b8', icon: '📥' },
-  { key: 'assigned', label: 'Assigned', color: '#3b82f6', icon: '👤' },
+  { key: 'submitted', label: 'Submitted', color: '#94a3b8', icon: '»' },
+  { key: 'assigned', label: 'Assigned', color: '#3b82f6', icon: '◇' },
   { key: 'in_progress', label: 'In Progress', color: '#f59e0b', icon: '🔧' },
-  { key: 'provisionally_resolved', label: 'Prov. Resolved', color: '#06b6d4', icon: '⏳' },
-  { key: 'escalated', label: 'Escalated', color: '#8b5cf6', icon: '⬆️' },
+  { key: 'provisionally_resolved', label: 'Prov. Resolved', color: '#06b6d4', icon: '◷' },
+  { key: 'escalated', label: 'Escalated', color: '#8b5cf6', icon: '▲' },
 ];
 
 export default function OfficerDashboard() {
@@ -204,7 +204,7 @@ export default function OfficerDashboard() {
         </div>
         <div style={{ display: 'flex', gap: '8px', flexShrink: 0 }}>
           <button onClick={fetchKanbanData} className="btn btn-ghost" style={{ fontSize: '0.8rem' }}>
-            🔄 Refresh
+            ↻ Refresh
           </button>
         </div>
       </div>
@@ -215,7 +215,7 @@ export default function OfficerDashboard() {
           background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.2)',
           color: '#fca5a5', fontSize: '0.85rem',
         }}>
-          ⚠️ {error}
+          [!] {error}
         </div>
       )}
 
@@ -267,12 +267,12 @@ export default function OfficerDashboard() {
                         >
                           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
                             <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>{ticket.referenceNumber}</span>
-                            {isSlaBreached && <span style={{ fontSize: '0.65rem', padding: '1px 6px', borderRadius: '4px', background: 'rgba(239,68,68,0.15)', color: '#fca5a5' }}>SLA ❌</span>}
+                            {isSlaBreached && <span style={{ fontSize: '0.65rem', padding: '1px 6px', borderRadius: '4px', background: 'rgba(239,68,68,0.15)', color: '#fca5a5' }}>SLA Breached</span>}
                           </div>
                           <div style={{ fontWeight: 600, fontSize: '0.85rem', marginBottom: '8px', lineHeight: 1.3 }}>{ticket.title}</div>
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                             <span className={`badge ${priorityClass}`} style={{ fontSize: '0.65rem', padding: '2px 8px' }}>{ticket.priority}</span>
-                            <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>📍 {wardName}</span>
+                            <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>○ {wardName}</span>
                           </div>
 
                           {selected === ticket._id && (
@@ -306,7 +306,7 @@ export default function OfficerDashboard() {
       {activeTab === 'complaints' && (
         <div className="glass-card" style={{ padding: '24px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
-            <h3 style={{ fontSize: '1.1rem', fontWeight: 700 }}>📝 Detailed Tasks Ledger</h3>
+            <h3 style={{ fontSize: '1.1rem', fontWeight: 700 }}>▣ Detailed Tasks Ledger</h3>
             <div style={{ display: 'flex', gap: '10px' }}>
               <input
                 className="input"

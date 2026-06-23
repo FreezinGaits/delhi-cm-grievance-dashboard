@@ -31,7 +31,7 @@ export async function initializeMinIO(): Promise<void> {
     const exists = await client.bucketExists(bucketName);
     if (!exists) {
       await client.makeBucket(bucketName, 'us-east-1');
-      logger.info(`✅ MinIO bucket "${bucketName}" created`);
+      logger.info(`MinIO bucket "${bucketName}" created`);
 
       // Set public read policy for uploaded files
       const policy = {
@@ -47,7 +47,7 @@ export async function initializeMinIO(): Promise<void> {
       };
       await client.setBucketPolicy(bucketName, JSON.stringify(policy));
     } else {
-      logger.info(`✅ MinIO bucket "${bucketName}" already exists`);
+      logger.info(`MinIO bucket "${bucketName}" already exists`);
     }
   } catch (error) {
     logger.error('Failed to initialize MinIO:', error);

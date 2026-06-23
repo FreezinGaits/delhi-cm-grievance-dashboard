@@ -28,7 +28,7 @@ export function getRedisClient(): Redis {
     redisClient = new Redis(redisOptions);
 
     redisClient.on('connect', () => {
-      logger.info('✅ Redis connected successfully');
+      logger.info('Redis connected successfully');
     });
 
     redisClient.on('error', (err) => {

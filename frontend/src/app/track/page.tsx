@@ -90,7 +90,7 @@ export default function TrackPage() {
       </nav>
 
       <div className="animate-fade-in" style={{ maxWidth: '800px', margin: '0 auto' }}>
-      <h1 style={{ fontSize: 'clamp(1.4rem, 4vw, 2rem)', fontWeight: 800, textAlign: 'center', marginBottom: '8px' }}>🔍 Track Your Complaint</h1>
+      <h1 style={{ fontSize: 'clamp(1.4rem, 4vw, 2rem)', fontWeight: 800, textAlign: 'center', marginBottom: '8px' }}>◎ Track Your Complaint</h1>
         <p style={{ textAlign: 'center', color: 'var(--text-muted)', marginBottom: '28px', fontSize: 'clamp(0.8rem, 1.5vw, 1rem)' }}>Enter your reference number to see real-time status</p>
 
         <form onSubmit={handleSearch} className="glass-card" style={{ padding: '24px', marginBottom: '32px' }}>
@@ -115,7 +115,7 @@ export default function TrackPage() {
             background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.2)',
             color: '#fca5a5', fontSize: '0.9rem', textAlign: 'center'
           }}>
-            ⚠️ {error}
+            [!] {error}
           </div>
         )}
 
@@ -161,7 +161,7 @@ export default function TrackPage() {
 
             {/* Timeline */}
             <div className="glass-card" style={{ padding: '28px' }}>
-              <h3 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '24px' }}>📋 Resolution Timeline</h3>
+              <h3 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '24px' }}>▣ Resolution Timeline</h3>
               {result.history?.length === 0 ? (
                 <div style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>No progress timeline registered yet.</div>
               ) : (
@@ -189,7 +189,7 @@ export default function TrackPage() {
               {result.complaint.status === 'provisionally_resolved' && (
                 <div style={{ marginTop: '20px', padding: '16px', background: 'rgba(59, 130, 246, 0.05)', borderRadius: '10px', border: '1px solid rgba(59, 130, 246, 0.1)', textAlign: 'center' }}>
                   <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '12px' }}>
-                    🔔 This complaint has been marked as Provisionally Resolved.
+                    [i] This complaint has been marked as Provisionally Resolved.
                   </p>
                   <Link href="/login" className="btn btn-primary" style={{ display: 'inline-block', fontSize: '0.85rem', padding: '10px 20px' }}>
                     Log in as Citizen to confirm resolution
