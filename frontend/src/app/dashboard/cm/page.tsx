@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 import dynamic from 'next/dynamic';
 
 const LiveMap = dynamic(() => import('../../components/LiveMap'), { ssr: false, loading: () => <div className="skeleton" style={{ height: '520px' }} /> });
+import AIBriefingWidget from '../../components/AIBriefingWidget';
 
 // Format time ago for alerts
 function formatTimeAgo(dateStr: string) {
@@ -276,6 +277,9 @@ export default function CMDashboard() {
             <StatCard label="SLA Breaches" value={summary.slaBreaches.toString()} icon="◷" variant="critical" />
             <StatCard label="Satisfaction" value={`${summary.citizenSatisfaction}%`} icon="◎" variant="success" />
           </div>
+
+          {/* AI Executive Briefing */}
+          <AIBriefingWidget />
 
           {/* Delhi Happiness Index & Worst Performing Zones */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 300px), 1fr))', gap: '16px', marginBottom: '24px' }}>

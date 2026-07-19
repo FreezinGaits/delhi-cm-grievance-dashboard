@@ -1,6 +1,6 @@
 # 🏛️ Delhi Governance Intelligence Platform (DGIP)
 
-> **CM Command Center** — Real-time Civic Operations Intelligence, AI-Powered Routing, Spatial DBSCAN Clustering, and Citizen-Veto Accountability for the Delhi Chief Minister's Office.
+> **CM Command Center** — Real-time Civic Operations Intelligence, Multi-Agent AI Governance, Spatial DBSCAN Clustering, and Citizen-Veto Accountability for the Delhi Chief Minister's Office.
 
 [![CI Pipeline](https://github.com/FreezinGaits/delhi-cm-grievance-dashboard/actions/workflows/ci.yml/badge.svg)](https://github.com/FreezinGaits/delhi-cm-grievance-dashboard/actions)
 
@@ -111,6 +111,29 @@ graph TD
         ExpressBackend --> AccountabilityEngine
     end
 
+    %% Agentic AI Layer
+    subgraph Agents [Multi-Agent AI Pipeline]
+        Orchestrator[🎯 Orchestrator]
+        VisionAgent[👁️ Vision Agent]
+        DuplicateAgent[🔍 Duplicate Agent]
+        PriorityAgent[⚡ Priority Agent]
+        RoutingAgent[🛣️ Routing Agent]
+        VerificationAgent[✅ Verification Agent]
+        AdvisorAgent[🧠 CM Advisor Agent]
+
+        Orchestrator --> VisionAgent
+        Orchestrator --> DuplicateAgent
+        Orchestrator --> PriorityAgent
+        Orchestrator --> RoutingAgent
+    end
+    ExpressBackend -->|Complaint Created| Orchestrator
+    Orchestrator -->|AI Decisions| MongoDB
+
+    %% LLM Provider
+    Agents -->|LLM Abstraction| LLMProvider{LLM Provider}
+    LLMProvider -->|Default| MockProvider[Mock Provider]
+    LLMProvider -.->|Optional| OpenAI[OpenAI / Gemini / Groq]
+
     %% Database & Cache
     ExpressBackend -->|Mongoose ODM| MongoDB[(MongoDB 7 <br> Geo-Indexes)]
     ExpressBackend -->|BullMQ Queue| RedisClient[(Redis 7 <br> Local Queue)]
@@ -122,6 +145,7 @@ graph TD
         ScoreWorker[Score Worker]
         DirectivesWorker[Directives Worker]
         WhatsAppWorker[WhatsApp Worker]
+        AIWorker[AI Analysis Worker]
     end
     RedisClient --> Workers
     Workers -->|Update State| MongoDB
@@ -129,6 +153,7 @@ graph TD
     %% Dashboards
     ExpressBackend -->|JSON API| CMDashboard[🏛️ CM Command Center]
     ExpressBackend -->|JSON API| OfficerKanban[📋 Officer Kanban Board]
+    AdvisorAgent -->|Briefing| CMDashboard
 ```
 
 ---
@@ -175,6 +200,43 @@ When the CM is on on-ground inspections, the dashboard shifts into **Field Visit
 
 ---
 
+## 🤖 Agentic AI Governance Layer
+
+The platform features a **multi-agent AI system** with 6 specialized agents coordinated by a central orchestrator. Every agent is independently feature-flagged and falls back to a deterministic `MockProvider` when no LLM API key is configured.
+
+### Agent Pipeline (triggered on every new complaint)
+
+```text
+Complaint → 👁️ Vision → 🔍 Duplicate → ⚡ Priority → 🛣️ Routing → 💾 DB Update
+```
+
+| Agent | Purpose | Key Capability |
+|-------|---------|----------------|
+| **👁️ Vision** | Analyzes complaint images | Detects category, severity, hazards from photos |
+| **🔍 Duplicate** | Semantic duplicate detection | Enhances DBSCAN with LLM-based semantic comparison |
+| **⚡ Priority** | Urgency assessment | Multi-factor scoring (0-100) with SLA recommendation |
+| **🛣️ Routing** | Department assignment | Suggests primary + secondary departments |
+| **✅ Verification** | Resolution validation | Checks officer evidence before citizen review |
+| **🧠 CM Advisor** | Executive intelligence | Generates morning briefings from real database state |
+
+### Design Principles
+
+- **Provider Agnostic:** `LLMProvider` interface supports OpenAI, Gemini, Groq, or Mock — toggled via `AI_PROVIDER` env var.
+- **Zero-Dependency Default:** `MockProvider` returns deterministic responses — no API keys required to run the full pipeline.
+- **Human-in-the-Loop:** AI suggestions only *upgrade* priorities (never downgrade) and always require human confirmation.
+- **Full Audit Trail:** Every agent decision is logged to `AgentDecision` collection with model, confidence, reasoning, and execution time.
+- **Async Processing:** Heavy analysis runs on a dedicated `ai-analysis` BullMQ worker, keeping API responses fast.
+
+### Agent API Endpoints
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST` | `/api/v1/agents/analyze` | Run full AI pipeline on a complaint |
+| `POST` | `/api/v1/agents/reverify` | Re-verify resolution evidence |
+| `GET` | `/api/v1/agents/advisor` | Generate CM executive briefing |
+| `GET` | `/api/v1/agents/history/:id` | Get AI decision audit trail |
+| `POST` | `/api/v1/agents/test` | Test pipeline with synthetic data |
+
 ## 📡 API Reference & Architecture Documentation
 
 All features and schemas are fully documented in the `docs/` folder:
@@ -193,9 +255,10 @@ All features and schemas are fully documented in the `docs/` folder:
 
 - **Frontend:** Next.js 15 App Router, React 19, TypeScript, Vanilla CSS, Recharts, Leaflet Maps
 - **Backend:** Node.js, Express.js, TypeScript, Mongoose ODM
-- **Cache & Queues:** Redis 7, BullMQ (6 active worker queues)
+- **AI Layer:** Multi-Agent Orchestrator, LLM Provider Abstraction (Mock/OpenAI/Gemini/Groq)
+- **Cache & Queues:** Redis 7, BullMQ (7 active worker queues including AI Analysis)
 - **Storage:** MinIO (Local S3-compatible Object Store) or AWS S3
-- **Testing:** Jest, Supertest (80%+ unit coverage target)
+- **Testing:** Jest, Supertest (42 tests across 4 suites)
 
 ---
 
@@ -205,17 +268,27 @@ All features and schemas are fully documented in the `docs/` folder:
 delhi-cm-grievance-dashboard/
 ├── backend/                  # Express REST API Server
 │   ├── src/
+│   │   ├── agents/          # 🤖 Agentic AI layer
+│   │   │   ├── shared/      # LLM provider & type definitions
+│   │   │   ├── vision/      # Image analysis agent
+│   │   │   ├── duplicate/   # Semantic duplicate detection
+│   │   │   ├── priority/    # Multi-factor urgency scoring
+│   │   │   ├── routing/     # AI department assignment
+│   │   │   ├── verification/# Resolution evidence validation
+│   │   │   ├── advisor/     # CM executive briefing engine
+│   │   │   └── orchestrator/# Central pipeline coordinator
 │   │   ├── config/          # Environment configuration & databases
 │   │   ├── controllers/     # Route handlers
 │   │   ├── middleware/      # Auth, RBAC, rate-limiting, and error-handlers
-│   │   ├── models/          # 15 Mongoose schemas
-│   │   ├── routes/          # REST route endpoints
+│   │   ├── models/          # 17 Mongoose schemas (incl. AIAnalysis, AgentDecision)
+│   │   ├── routes/          # REST route endpoints (incl. agents.routes)
 │   │   ├── services/        # Scoring, clustering, and WhatsApp engines
-│   │   └── workers/         # BullMQ queue background workers
+│   │   └── workers/         # BullMQ queue background workers (7 queues)
 ├── frontend/                 # Next.js 15 command center frontend
 │   └── src/app/
+│       ├── components/      # AI Briefing Widget, AI Analysis Badge
 │       ├── dashboard/
-│       │   ├── cm/          # Command center (Heatmaps, Rankings, Directives)
+│       │   ├── cm/          # Command center (AI Briefing, Heatmaps, Rankings)
 │       │   ├── officer/     # Kanban workflow board & evidence portal
 │       │   └── citizen/     # Web intake & ticket tracking
 └── docs/                     # Visual design and engine specifications

@@ -5,6 +5,8 @@ import { WhatsAppProvider } from '../services/whatsapp.provider';
 import { ClusteringService } from '../services/clustering.service';
 import { AccountabilityService } from '../services/accountability.service';
 import { DirectiveService } from '../services/directive.service';
+import { ComplaintAgentOrchestrator } from '../agents/orchestrator';
+import { Complaint } from '../models/Complaint';
 import { logger } from '../utils/logger';
 
 /**
@@ -42,6 +44,7 @@ export function createQueues() {
       accountability: new Queue('accountability', { connection: redisConnection }),
       directiveCheck: new Queue('directive-check', { connection: redisConnection }),
       sessionCleanup: new Queue('session-cleanup', { connection: redisConnection }),
+      aiAnalysis: new Queue('ai-analysis', { connection: redisConnection }),
     };
 
     // Attach error listeners to prevent unhandled promise rejections / crashes
@@ -151,6 +154,44 @@ export function startWorkers() {
       { connection: redisConnection },
     );
     workers.push({ name: 'session-cleanup', worker: wSessionCleanup });
+
+    // 8. AI Analysis Worker (on-demand via queue)
+    const wAIAnalysis = new Worker(
+      'ai-analysis',
+      async (job) => {
+        const { complaintId } = job.data;
+        logger.info(`[Worker:ai-analysis] Analyzing complaint ${complaintId}`);
+
+        const complaint = await Complaint.findById(complaintId);
+        if (!complaint) {
+          logger.warn(`[Worker:ai-analysis] Complaint ${complaintId} not found`);
+          return;
+        }
+
+        const CRITICAL_KEYWORDS = ['open manhole', 'manhole', 'live wire', 'gas leak', 'collapse', 'fire', 'flood', 'sinkhole'];
+        const text = `${complaint.title} ${complaint.description}`.toLowerCase();
+        const isCriticalKeyword = CRITICAL_KEYWORDS.some(kw => text.includes(kw));
+
+        const imageUrls = (complaint.media || []).filter(m => m.type === 'image').map(m => m.url);
+
+        const result = await ComplaintAgentOrchestrator.analyzeComplaint({
+          complaintId: complaint._id.toString(),
+          title: complaint.title,
+          description: complaint.description,
+          category: complaint.category,
+          latitude: complaint.location.coordinates[1],
+          longitude: complaint.location.coordinates[0],
+          imageUrls,
+          ward: complaint.address?.ward,
+          district: complaint.address?.district,
+          isCriticalKeyword,
+        });
+
+        logger.info(`[Worker:ai-analysis] Complete for ${complaintId}: ${result.orchestratorMeta.agentsRun.length} agents ran`);
+      },
+      { connection: redisConnection },
+    );
+    workers.push({ name: 'ai-analysis', worker: wAIAnalysis });
 
     // Attach error handlers to all workers to prevent crashes
     workers.forEach(({ name, worker }) => {

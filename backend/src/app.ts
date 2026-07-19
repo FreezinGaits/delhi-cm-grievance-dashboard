@@ -23,6 +23,7 @@ import notificationRoutes from './routes/notification.routes';
 import whatsappRoutes from './routes/whatsapp.routes';
 import directiveRoutes from './routes/directive.routes';
 import governanceRoutes from './routes/governance.routes';
+import agentRoutes from './routes/agents.routes';
 
 // Import workers
 import { startWorkers, scheduleRecurringJobs } from './workers/queue';
@@ -82,6 +83,7 @@ app.use(`${API_PREFIX}/admin`, adminRoutes);
 app.use(`${API_PREFIX}/notifications`, notificationRoutes);
 app.use(`${API_PREFIX}/directives`, directiveRoutes);
 app.use(`${API_PREFIX}/governance`, governanceRoutes);
+app.use(`${API_PREFIX}/agents`, agentRoutes);
 
 // Serve static file uploads
 import path from 'path';

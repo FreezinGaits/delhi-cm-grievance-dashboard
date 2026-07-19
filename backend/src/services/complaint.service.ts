@@ -6,6 +6,7 @@ import { AuditLog } from '../models/AuditLog';
 import { Counter } from '../models/Counter';
 import { ApiError } from '../middleware/error.middleware';
 import { logger } from '../utils/logger';
+import { createQueues } from '../workers/queue';
 
 // Critical keywords for auto-detection
 const CRITICAL_KEYWORDS = [
@@ -188,6 +189,21 @@ export class ComplaintService {
     }
 
     logger.info(`Complaint created: ${referenceNumber} (${data.category}) - Critical: ${isCritical}`);
+
+    // Dispatch async AI analysis via BullMQ
+    try {
+      const queues = createQueues();
+      if (queues?.aiAnalysis) {
+        await queues.aiAnalysis.add(
+          'analyze-complaint',
+          { complaintId: complaint._id.toString() },
+          { removeOnComplete: { count: 50 }, removeOnFail: { count: 10 } },
+        );
+        logger.info(`[AI] Queued analysis for complaint ${referenceNumber}`);
+      }
+    } catch (err) {
+      logger.warn(`[AI] Failed to queue analysis for ${referenceNumber}: ${err}`);
+    }
 
     return complaint;
   }

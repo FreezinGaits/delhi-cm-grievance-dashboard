@@ -45,3 +45,10 @@ export type { IOfficerScore } from './OfficerScore';
 // ── Phase D: CM Spot Directives ──
 export { Directive, DirectiveStatus, DirectivePriority } from './Directive';
 export type { IDirective } from './Directive';
+
+// ── Phase E: Agentic AI Governance ──
+export { AIAnalysis } from './AIAnalysis';
+export type { IAIAnalysis } from './AIAnalysis';
+
+export { AgentDecision } from './AgentDecision';
+export type { IAgentDecision } from './AgentDecision';

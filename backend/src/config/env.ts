@@ -38,6 +38,18 @@ interface EnvConfig {
 
   LOG_LEVEL: string;
   LOG_FORMAT: string;
+
+  // ── Agentic AI ──
+  AI_PROVIDER: string;
+  OPENAI_API_KEY: string;
+  GEMINI_API_KEY: string;
+  GROQ_API_KEY: string;
+  ENABLE_VISION_AGENT: boolean;
+  ENABLE_DUPLICATE_AGENT: boolean;
+  ENABLE_PRIORITY_AGENT: boolean;
+  ENABLE_ROUTING_AGENT: boolean;
+  ENABLE_VERIFICATION_AGENT: boolean;
+  ENABLE_CM_ADVISOR: boolean;
 }
 
 function getEnvVar(key: string, defaultValue?: string): string {
@@ -95,4 +107,16 @@ export const env: EnvConfig = {
 
   LOG_LEVEL: getEnvVar('LOG_LEVEL', 'debug'),
   LOG_FORMAT: getEnvVar('LOG_FORMAT', 'dev'),
+
+  // ── Agentic AI ──
+  AI_PROVIDER: getEnvVar('AI_PROVIDER', 'mock'),
+  OPENAI_API_KEY: getEnvVar('OPENAI_API_KEY', ''),
+  GEMINI_API_KEY: getEnvVar('GEMINI_API_KEY', ''),
+  GROQ_API_KEY: getEnvVar('GROQ_API_KEY', ''),
+  ENABLE_VISION_AGENT: getEnvBool('ENABLE_VISION_AGENT', true),
+  ENABLE_DUPLICATE_AGENT: getEnvBool('ENABLE_DUPLICATE_AGENT', true),
+  ENABLE_PRIORITY_AGENT: getEnvBool('ENABLE_PRIORITY_AGENT', true),
+  ENABLE_ROUTING_AGENT: getEnvBool('ENABLE_ROUTING_AGENT', true),
+  ENABLE_VERIFICATION_AGENT: getEnvBool('ENABLE_VERIFICATION_AGENT', true),
+  ENABLE_CM_ADVISOR: getEnvBool('ENABLE_CM_ADVISOR', true),
 };
